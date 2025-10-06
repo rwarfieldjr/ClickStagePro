@@ -1,0 +1,688 @@
+<!doctype html><html><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Upload Photos – Step 2</title>
+<style>
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#f6f7f9;margin:0;padding:0}
+  .container{max-width:1200px;margin:0 auto;padding:0 20px}
+  
+  /* Header styles */
+  .site-header{background:#fff;border-bottom:1px solid #e5e7eb;position:sticky;top:0;z-index:100}
+  .site-header .container{display:flex;align-items:center;justify-content:space-between;padding:16px 20px}
+  .logo{display:flex;align-items:center;gap:8px;text-decoration:none;color:#000}
+  .logo-icon{width:32px;height:32px;background:#2563eb;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;font-size:18px}
+  .logo-text{font-weight:600;font-size:20px}
+  .nav-links{display:flex;align-items:center;gap:24px}
+  .nav-links a{text-decoration:none;color:#374151;font-weight:500;font-size:14px;padding:8px 12px;border-radius:6px;transition:background-color 0.2s}
+  .nav-links a:hover{background:#f3f4f6}
+  .nav-links .primary-btn{background:#2563eb;color:#fff;padding:10px 16px;border-radius:8px;font-weight:600}
+  .nav-links .primary-btn:hover{background:#1d4ed8}
+  .mobile-menu-btn{display:none;background:none;border:none;font-size:24px;cursor:pointer}
+  
+  /* Mobile header */
+  @media (max-width: 768px) {
+    .nav-links{display:none}
+    .mobile-menu-btn{display:block}
+  }
+  
+  /* Content styles */
+  .main-content{min-height:calc(100vh - 140px);padding:24px 0}
+  .page-header{background:#fff;padding:24px;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.05);margin-bottom:24px;text-align:center}
+  .step{background:#e5e7eb;color:#374151;padding:8px 16px;border-radius:20px;font-size:14px;margin-bottom:12px;display:inline-block}
+  .upload-area{background:#fff;border:2px dashed #d1d5db;border-radius:12px;padding:48px 24px;text-align:center;margin-bottom:24px;transition:border-color 0.3s}
+  .upload-area:hover{border-color:#2563eb}
+  .upload-area.dragover{border-color:#2563eb;background:#f0f4ff}
+  .file-input{display:none}
+  .upload-btn{background:#2563eb;color:#fff;border:0;padding:12px 24px;border-radius:8px;font-weight:600;cursor:pointer}
+  .upload-btn:hover{background:#1d4ed8}
+  .file-list{background:#fff;padding:16px;border-radius:12px;margin-top:16px;display:none}
+  .file-item{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e5e7eb}
+  .file-item:last-child{border-bottom:none}
+  .file-progress{width:100%;height:4px;background:#e5e7eb;border-radius:2px;margin:4px 0}
+  .file-progress-bar{height:100%;background:#10b981;border-radius:2px;transition:width 0.3s}
+  .order-controls{background:#fff;padding:24px;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.05);margin-top:24px}
+  .bundle-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:16px 0}
+  .bundle-option{border:2px solid #e5e7eb;border-radius:8px;padding:16px;text-align:center;cursor:pointer;transition:all 0.3s}
+  .bundle-option:hover{border-color:#2563eb}
+  .bundle-option.selected{border-color:#2563eb;background:#f0f4ff}
+  .bundle-price{font-size:18px;font-weight:600;color:#2563eb;margin:4px 0}
+  .continue-btn{width:100%;background:#10b981;color:#fff;border:0;padding:16px;border-radius:8px;font-weight:600;font-size:16px;cursor:pointer;margin-top:24px}
+  .continue-btn:hover{background:#059669}
+  .continue-btn:disabled{background:#d1d5db;cursor:not-allowed}
+  select{width:100%;padding:12px;border:1px solid #d1d5db;border-radius:8px;margin-top:8px}
+  label{display:block;margin:16px 0 0;font-weight:600}
+  
+  /* Footer styles */
+  .site-footer{background:#fff;border-top:1px solid #e5e7eb;margin-top:64px}
+  .footer-content{padding:48px 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:32px}
+  .footer-section h3{font-weight:600;margin-bottom:16px;color:#111827}
+  .footer-section p{color:#6b7280;margin-bottom:24px}
+  .footer-section ul{list-style:none;padding:0;margin:0}
+  .footer-section li{margin-bottom:8px}
+  .footer-section a{text-decoration:none;color:#6b7280;font-size:14px;transition:color 0.2s}
+  .footer-section a:hover{color:#111827}
+  .contact-info{display:flex;align-items:center;gap:8px;margin-bottom:8px;color:#6b7280;font-size:14px}
+  .footer-logo{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+  .footer-bottom{border-top:1px solid #e5e7eb;padding:24px 0;text-align:center;color:#6b7280;font-size:14px}
+  
+  /* Theme toggle button */
+  .theme-toggle{background:none;border:none;cursor:pointer;padding:8px;border-radius:6px;display:flex;align-items:center;justify-content:center;transition:background-color 0.2s}
+  .theme-toggle:hover{background:#f3f4f6}
+  .theme-toggle svg{width:20px;height:20px;color:#374151}
+  
+  /* Dark mode styles */
+  html.dark body{background:#0f172a;color:#e2e8f0}
+  html.dark .site-header{background:#1e293b;border-bottom-color:#334155}
+  html.dark .logo{color:#fff}
+  html.dark .nav-links a{color:#cbd5e1}
+  html.dark .nav-links a:hover{background:#334155}
+  html.dark .theme-toggle:hover{background:#334155}
+  html.dark .theme-toggle svg{color:#cbd5e1}
+  html.dark .page-header{background:#1e293b;color:#e2e8f0}
+  html.dark .step{background:#334155;color:#cbd5e1}
+  html.dark .upload-area{background:#1e293b;border-color:#475569;color:#e2e8f0}
+  html.dark .upload-area:hover{border-color:#2563eb}
+  html.dark .upload-area.dragover{background:#1e3a8a}
+  html.dark .file-list{background:#1e293b;color:#e2e8f0}
+  html.dark .file-item{border-bottom-color:#334155}
+  html.dark .order-controls{background:#1e293b;color:#e2e8f0}
+  html.dark .bundle-option{border-color:#475569;color:#e2e8f0}
+  html.dark .bundle-option:hover{border-color:#2563eb}
+  html.dark .bundle-option.selected{background:#1e3a8a}
+  html.dark select{background:#1e293b;color:#e2e8f0;border-color:#475569}
+  html.dark .site-footer{background:#1e293b;border-top-color:#334155}
+  html.dark .footer-section h3{color:#f1f5f9}
+  html.dark .footer-section p{color:#94a3b8}
+  html.dark .footer-section a{color:#94a3b8}
+  html.dark .footer-section a:hover{color:#f1f5f9}
+  html.dark .contact-info{color:#94a3b8}
+  html.dark .footer-bottom{border-top-color:#334155;color:#94a3b8}
+  
+  /* Styles Modal */
+  .styles-link{color:#2563eb;text-decoration:underline;cursor:pointer;font-size:14px;margin-left:8px;font-weight:normal}
+  .styles-link:hover{color:#1d4ed8}
+  .modal{display:none;position:fixed;z-index:1000;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.5);overflow:auto}
+  .modal.show{display:block}
+  .modal-content{background:#fff;margin:40px auto;padding:0;border-radius:12px;max-width:1200px;width:90%;max-height:85vh;overflow-y:auto;position:relative}
+  .modal-header{padding:20px 24px;border-bottom:1px solid #e5e7eb;position:sticky;top:0;background:#fff;z-index:10;border-radius:12px 12px 0 0}
+  .modal-body{padding:24px}
+  .close-btn{position:absolute;right:20px;top:20px;font-size:28px;font-weight:bold;color:#6b7280;cursor:pointer;background:none;border:none;line-height:1;padding:0;width:32px;height:32px;display:flex;align-items:center;justify-content:center}
+  .close-btn:hover{color:#1f2937}
+  .styles-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:24px}
+  .style-card{cursor:pointer;transition:transform 0.2s}
+  .style-card:hover{transform:translateY(-4px)}
+  .style-image{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;margin-bottom:12px}
+  .style-name{font-size:20px;font-weight:600;margin-bottom:8px;color:#1f2937}
+  .style-desc{font-size:14px;color:#6b7280;line-height:1.5}
+  
+  /* Dark mode for modal */
+  html.dark .modal-content{background:#1e293b;color:#e2e8f0}
+  html.dark .modal-header{background:#1e293b;border-bottom-color:#334155}
+  html.dark .close-btn{color:#94a3b8}
+  html.dark .close-btn:hover{color:#f1f5f9}
+  html.dark .style-name{color:#f1f5f9}
+  html.dark .style-desc{color:#94a3b8}
+</style>
+</head><body>
+  <!-- Site Header -->
+  <header class="site-header">
+    <div class="container">
+      <a href="/" class="logo">
+        <div class="logo-icon">CS</div>
+        <span class="logo-text">ClickStage Pro</span>
+      </a>
+      <nav class="nav-links">
+        <a href="/">Home</a>
+        <a href="/portfolio">Portfolio</a>
+        <a href="/services">Services</a>
+        <a href="/pricing">Pricing</a>
+        <a href="/faq">FAQ</a>
+        <a href="/about">About</a>
+        <a href="/contact-us">Contact Us</a>
+        <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+          <svg id="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+          <svg id="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="display:none">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+          </svg>
+        </button>
+        <a href="/place-order" class="primary-btn">Place Staging Order</a>
+      </nav>
+      <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="container">
+      <div class="page-header">
+        <div class="step">Step 2 of 3</div>
+        <h1>Upload Photos & Select Package</h1>
+        <p style="color:#6b7280;margin:0">Upload your property photos and choose your styling package</p>
+        <div style="margin-top:16px">
+          <span class="styles-link" onclick="openStylesModal()" style="font-size:16px;font-weight:600">Click Here to See Styles</span>
+        </div>
+      </div>
+
+    <!-- Upload Area -->
+    <div class="upload-area" id="uploadArea">
+      <div style="font-size:48px;margin-bottom:16px">📸</div>
+      <h3 style="margin:0 0 8px">Drag & drop your photos here <span style="color:#ef4444">*</span></h3>
+      <p style="color:#6b7280;margin:0 0 16px">or click to browse files</p>
+      <button class="upload-btn" onclick="document.getElementById('fileInput').click()">Select Photos</button>
+      <input type="file" id="fileInput" class="file-input" multiple accept="image/jpeg,image/jpg,image/png,image/webp,image/gif">
+      <p style="font-size:12px;color:#9ca3af;margin:16px 0 0">Supports JPG, PNG, WebP, GIF • Max 10MB each • <span style="color:#ef4444;font-weight:500">Required</span></p>
+    </div>
+
+    <div id="fileList" class="file-list">
+      <h4>Uploaded Files</h4>
+      <div id="fileItems"></div>
+    </div>
+
+    <!-- Order Controls -->
+    <div class="order-controls">
+      <h2 style="margin:0 0 16px">Select Style & Package</h2>
+      
+      <label>Staging Style <span style="color:#ef4444">*</span>
+        <span class="styles-link" onclick="openStylesModal()">Click Here to See Styles</span>
+        <select id="style" required>
+          <option value="">-- Select a style --</option>
+          <option value="Modern Farmhouse">Modern Farmhouse</option>
+          <option value="Coastal">Coastal</option>
+          <option value="Scandinavian">Scandinavian</option>
+          <option value="Contemporary">Contemporary</option>
+          <option value="Mid-Century Modern">Mid-Century Modern</option>
+          <option value="Shabby Chic">Shabby Chic</option>
+          <option value="Mountain Rustic">Mountain Rustic</option>
+          <option value="Transitional">Transitional</option>
+          <option value="Japandi">Japandi</option>
+          <option value="Industrial">Industrial</option>
+        </select>
+      </label>
+
+      <label style="margin-top:24px">Choose Your Package <span style="color:#ef4444">*</span></label>
+      <div class="bundle-grid">
+        <div class="bundle-option" data-bundle="1" data-price="10">
+          <input type="radio" name="bundle" value="1" style="margin-bottom:8px">
+          <div style="font-weight:600">Single Photo</div>
+          <div class="bundle-price">$10</div>
+          <div style="font-size:12px;color:#6b7280">Perfect for testing</div>
+        </div>
+        <div class="bundle-option" data-bundle="5" data-price="45">
+          <input type="radio" name="bundle" value="5" style="margin-bottom:8px">
+          <div style="font-weight:600">5 Photos</div>
+          <div class="bundle-price">$45</div>
+          <div style="font-size:12px;color:#6b7280">$9 per photo</div>
+        </div>
+        <div class="bundle-option" data-bundle="10" data-price="85">
+          <input type="radio" name="bundle" value="10" style="margin-bottom:8px">
+          <div style="font-weight:600">10 Photos</div>
+          <div class="bundle-price">$85</div>
+          <div style="font-size:12px;color:#6b7280">$8.50 per photo</div>
+        </div>
+        <div class="bundle-option" data-bundle="20" data-price="160">
+          <input type="radio" name="bundle" value="20" style="margin-bottom:8px">
+          <div style="font-weight:600">20 Photos</div>
+          <div class="bundle-price">$160</div>
+          <div style="font-size:12px;color:#6b7280">$8 per photo</div>
+        </div>
+        <div class="bundle-option" data-bundle="50" data-price="375">
+          <input type="radio" name="bundle" value="50" style="margin-bottom:8px">
+          <div style="font-weight:600">50 Photos</div>
+          <div class="bundle-price">$375</div>
+          <div style="font-size:12px;color:#6b7280">$7.50 per photo</div>
+        </div>
+        <div class="bundle-option" data-bundle="100" data-price="700">
+          <input type="radio" name="bundle" value="100" style="margin-bottom:8px">
+          <div style="font-weight:600">100 Photos</div>
+          <div class="bundle-price">$700</div>
+          <div style="font-size:12px;color:#6b7280">$7 per photo</div>
+        </div>
+      </div>
+
+      <button id="continueBtn" class="continue-btn" disabled>Continue to Payment</button>
+      
+      <p style="text-align:center;margin-top:16px;font-size:13px;color:#6b7280">
+        By continuing, you agree to our 
+        <a href="/privacy-policy" style="color:#3b82f6;text-decoration:none">Privacy Policy</a> | 
+        <a href="/terms-of-service" style="color:#3b82f6;text-decoration:none">Terms of Service</a>
+      </p>
+    </div>
+    </div>
+  </main>
+
+  <!-- Site Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-content">
+        <!-- Company Info -->
+        <div class="footer-section">
+          <div class="footer-logo">
+            <div class="logo-icon">CS</div>
+            <span class="logo-text">ClickStage Pro</span>
+          </div>
+          <p>Transform empty properties into buyer's dreams with our professional AI-powered virtual staging services. Sell homes faster with stunning visualizations.</p>
+          <div class="contact-info">📞 (864) 400-0766</div>
+          <div class="contact-info">✉️ support@clickstagepro.com</div>
+          <div class="contact-info">📍 Greenville, SC</div>
+        </div>
+        
+        <!-- Services -->
+        <div class="footer-section">
+          <h3>Services</h3>
+          <ul>
+            <li><a href="/services#residential">Residential Virtual Staging</a></li>
+            <li><a href="/services#commercial">Commercial Virtual Staging</a></li>
+            <li><a href="/services#multi-family">Multi-Family Apartment Staging</a></li>
+            <li><a href="/services#photo-enhancement">Photo Enhancement</a></li>
+            <li><a href="/services#decluttering">Room Decluttering</a></li>
+          </ul>
+        </div>
+        
+        <!-- Company -->
+        <div class="footer-section">
+          <h3>Company</h3>
+          <ul>
+            <li><a href="/about">About Us</a></li>
+            <li><a href="/portfolio">Portfolio</a></li>
+            <li><a href="/pricing">Pricing</a></li>
+            <li><a href="/faq">FAQ</a></li>
+            <li><a href="/contact-us">Contact Us</a></li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="footer-bottom">
+        <p>&copy; 2025 ClickStage Pro. All rights reserved. | 
+          <a href="/privacy-policy" style="color:#6b7280">Privacy Policy</a> | 
+          <a href="/terms-of-service" style="color:#6b7280">Terms of Service</a>
+        </p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Styles Modal -->
+  <div id="stylesModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 style="margin:0;font-size:24px;font-weight:600">Our Staging Styles</h2>
+        <button class="close-btn" onclick="closeStylesModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="color:#6b7280;margin-bottom:24px;text-align:center">Choose from our curated collection of professional staging styles designed to showcase your property's full potential</p>
+        <div class="styles-grid">
+          <div class="style-card">
+            <img src="/styles/modern-farmhouse.png" alt="Modern Farmhouse" class="style-image">
+            <div class="style-name">Modern Farmhouse</div>
+            <div class="style-desc">Blending rustic charm with modern comfort, this style features neutral color palettes, natural wood accents, shiplap details, and cozy textiles.</div>
+          </div>
+          <div class="style-card">
+            <img src="/styles/coastal.png" alt="Coastal" class="style-image">
+            <div class="style-name">Coastal</div>
+            <div class="style-desc">Inspired by beachside living, coastal style brings light and airy vibes with soft blues, sandy neutrals, natural textures like rattan and jute.</div>
+          </div>
+          <div class="style-card">
+            <img src="/styles/scandinavian.png" alt="Scandinavian" class="style-image">
+            <div class="style-name">Scandinavian</div>
+            <div class="style-desc">Emphasizing simplicity and functionality, Scandinavian design features clean lines, minimal clutter, light wood tones, and a neutral color scheme.</div>
+          </div>
+          <div class="style-card">
+            <img src="/styles/contemporary.png" alt="Contemporary" class="style-image">
+            <div class="style-name">Contemporary</div>
+            <div class="style-desc">Sleek and sophisticated, contemporary style showcases clean lines, neutral tones with bold accents, modern furniture, and minimal ornamentation.</div>
+          </div>
+          <div class="style-card">
+            <img src="/styles/mid-century-modern.png" alt="Mid-Century Modern" class="style-image">
+            <div class="style-name">Mid-Century Modern</div>
+            <div class="style-desc">Characterized by iconic furniture pieces, organic shapes, and a mix of materials like wood and metal. Features clean lines and functionality.</div>
+          </div>
+          <div class="style-card">
+            <img src="/styles/mountain-rustic.png" alt="Mountain Rustic" class="style-image">
+            <div class="style-name">Mountain Rustic</div>
+            <div class="style-desc">Embracing natural materials like wood and stone, this style creates a cozy lodge-like atmosphere with warm earth tones and rustic textures.</div>
+          </div>
+          <div class="style-card">
+            <img src="/styles/transitional.png" alt="Transitional" class="style-image">
+            <div class="style-name">Transitional</div>
+            <div class="style-desc">Perfectly balanced between traditional and contemporary, transitional style combines classic furniture silhouettes with modern finishes.</div>
+          </div>
+          <div class="style-card">
+            <img src="/styles/japandi.png" alt="Japandi" class="style-image">
+            <div class="style-name">Japandi</div>
+            <div class="style-desc">A harmonious fusion of Japanese minimalism and Scandinavian functionality, featuring clean lines, natural materials, and neutral tones.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+// Modal functions
+function openStylesModal() {
+  document.getElementById('stylesModal').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeStylesModal() {
+  document.getElementById('stylesModal').classList.remove('show');
+  document.body.style.overflow = 'auto';
+}
+
+// Close modal when clicking outside of it
+window.addEventListener('click', function(event) {
+  const modal = document.getElementById('stylesModal');
+  if (event.target === modal) {
+    closeStylesModal();
+  }
+});
+
+
+// Theme toggle functionality - synced with main React app
+function toggleTheme() {
+  const root = document.documentElement;
+  const sunIcon = document.getElementById('theme-icon-sun');
+  const moonIcon = document.getElementById('theme-icon-moon');
+  
+  if (root.classList.contains('dark')) {
+    root.classList.remove('dark');
+    root.classList.add('light');
+    sunIcon.style.display = 'block';
+    moonIcon.style.display = 'none';
+    localStorage.setItem('vite-ui-theme', 'light');
+  } else {
+    root.classList.remove('light');
+    root.classList.add('dark');
+    sunIcon.style.display = 'none';
+    moonIcon.style.display = 'block';
+    localStorage.setItem('vite-ui-theme', 'dark');
+  }
+}
+
+// Apply saved theme on page load - synced with main React app
+(function() {
+  const savedTheme = localStorage.getItem('vite-ui-theme');
+  const root = document.documentElement;
+  const sunIcon = document.getElementById('theme-icon-sun');
+  const moonIcon = document.getElementById('theme-icon-moon');
+  
+  root.classList.remove('light', 'dark');
+  
+  if (savedTheme === 'system') {
+    const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    root.classList.add(systemTheme);
+    if (systemTheme === 'dark') {
+      if (sunIcon) sunIcon.style.display = 'none';
+      if (moonIcon) moonIcon.style.display = 'block';
+    }
+  } else if (savedTheme === 'dark') {
+    root.classList.add('dark');
+    if (sunIcon) sunIcon.style.display = 'none';
+    if (moonIcon) moonIcon.style.display = 'block';
+  } else {
+    root.classList.add('light');
+  }
+})();
+
+// Check if customer data exists, redirect if not
+window.addEventListener('DOMContentLoaded', () => {
+  const customer = localStorage.getItem('cspCustomer');
+  if (!customer) {
+    location.href = '/order-step-1.html';
+    return;
+  }
+});
+
+// File upload handling
+const uploadArea = document.getElementById('uploadArea');
+const fileInput = document.getElementById('fileInput');
+const fileList = document.getElementById('fileList');
+const fileItems = document.getElementById('fileItems');
+const continueBtn = document.getElementById('continueBtn');
+
+let uploadedFiles = [];
+
+// Drag and drop functionality
+uploadArea.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  uploadArea.classList.add('dragover');
+});
+
+uploadArea.addEventListener('dragleave', () => {
+  uploadArea.classList.remove('dragover');
+});
+
+uploadArea.addEventListener('drop', (e) => {
+  e.preventDefault();
+  uploadArea.classList.remove('dragover');
+  handleFiles(e.dataTransfer.files);
+});
+
+fileInput.addEventListener('change', (e) => {
+  handleFiles(e.target.files);
+});
+
+function handleFiles(files) {
+  Array.from(files).forEach(file => {
+    if (file.type.startsWith('image/') && file.size <= 10 * 1024 * 1024) {
+      uploadFile(file);
+    } else {
+      alert(`${file.name} is not a valid image or is too large (max 10MB)`);
+    }
+  });
+}
+
+async function uploadToR2(file, fileItem) {
+  try {
+    console.log('Starting upload for:', file.name, 'size:', file.size, 'type:', file.type);
+    
+    // Server-side proxy upload (CORS-free)
+    fileItem.progress = 20;
+    updateFileList();
+
+    // Convert file to base64
+    console.log('Converting file to base64...');
+    const reader = new FileReader();
+    const fileData = await new Promise((resolve, reject) => {
+      reader.onload = () => {
+        const result = reader.result;
+        if (!result || typeof result !== 'string') {
+          reject(new Error('Failed to read file as base64'));
+          return;
+        }
+        const base64 = result.split(',')[1];
+        console.log('Base64 conversion complete, length:', base64?.length || 0);
+        resolve(base64);
+      };
+      reader.onerror = () => reject(new Error('FileReader error: ' + reader.error?.message));
+      reader.readAsDataURL(file);
+    });
+
+    if (!fileData) {
+      throw new Error('File conversion to base64 failed - no data');
+    }
+
+    fileItem.progress = 40;
+    updateFileList();
+
+    // Upload via server proxy
+    console.log('Sending to server...');
+    const uploadResponse = await fetch('/api/upload-proxy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        filename: file.name,
+        mime: file.type,
+        size: file.size,
+        fileData: fileData
+      })
+    });
+
+    fileItem.progress = 90;
+    updateFileList();
+
+    console.log('Server response status:', uploadResponse.status);
+    const uploadResult = await uploadResponse.json();
+    console.log('Server response:', uploadResult);
+    
+    if (!uploadResponse.ok || !uploadResult.ok) {
+      throw new Error(uploadResult.error || `Server upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
+    }
+
+    console.log('Upload successful! Key:', uploadResult.key);
+    return { key: uploadResult.key };
+  } catch (error) {
+    console.error('uploadToR2 error:', error);
+    throw error; // Re-throw to be caught by uploadFile
+  }
+}
+
+async function uploadFile(file) {
+  const fileId = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+  const fileItem = {
+    id: fileId,
+    name: file.name,
+    size: file.size,
+    progress: 0,
+    key: ''
+  };
+  
+  uploadedFiles.push(fileItem);
+  updateFileList();
+  fileList.style.display = 'block';
+
+  try {
+    fileItem.progress = 10;
+    updateFileList();
+    
+    const result = await uploadToR2(file, fileItem);
+    
+    fileItem.key = result.key;
+    fileItem.progress = 100;
+    fileItem.completed = true;
+    updateFileList();
+    checkContinueButton();
+
+  } catch (error) {
+    console.error('Upload failed:', error);
+    console.error('Full error details:', error.stack);
+    const errorMsg = error.message || error.toString() || 'Unknown error';
+    fileItem.error = errorMsg;
+    fileItem.progress = 0;
+    updateFileList();
+    alert(`Upload failed for ${file.name}:\n${errorMsg}`);
+  }
+}
+
+function updateFileList() {
+  fileItems.innerHTML = uploadedFiles.map(file => `
+    <div class="file-item">
+      <div>
+        <div style="font-weight:500">${file.name}</div>
+        <div style="font-size:12px;color:#6b7280">${(file.size / 1024 / 1024).toFixed(2)} MB</div>
+      </div>
+      <div style="width:120px">
+        <div class="file-progress">
+          <div class="file-progress-bar" style="width:${file.progress}%"></div>
+        </div>
+        <div style="font-size:11px;color:#6b7280;text-align:center">${Math.round(file.progress)}%</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Styling style change listener
+document.getElementById('style').addEventListener('change', () => {
+  checkContinueButton();
+});
+
+// Bundle selection
+document.querySelectorAll('.bundle-option').forEach(option => {
+  option.addEventListener('click', () => {
+    document.querySelectorAll('.bundle-option').forEach(opt => opt.classList.remove('selected'));
+    option.classList.add('selected');
+    const radio = option.querySelector('input[type="radio"]');
+    radio.checked = true;
+    checkContinueButton();
+  });
+});
+
+function checkContinueButton() {
+  const hasFiles = uploadedFiles.some(f => f.completed);
+  const hasStyle = document.getElementById('style').value !== '';
+  const hasBundle = document.querySelector('input[name="bundle"]:checked');
+  continueBtn.disabled = !hasFiles || !hasStyle || !hasBundle;
+}
+
+// Continue to payment
+continueBtn.addEventListener('click', async () => {
+  const customer = JSON.parse(localStorage.getItem('cspCustomer'));
+  const style = document.getElementById('style').value;
+  const bundleRadio = document.querySelector('input[name="bundle"]:checked');
+  
+  // Validate required fields
+  if (!style) {
+    alert('Please select a staging style');
+    return;
+  }
+  
+  if (!bundleRadio) {
+    alert('Please select a package');
+    return;
+  }
+
+  const bundle = bundleRadio.value;
+  const bundleOption = document.querySelector(`[data-bundle="${bundle}"]`);
+  const price = bundleOption.dataset.price;
+
+  const orderData = {
+    customer,
+    style,
+    bundle: parseInt(bundle),
+    files: uploadedFiles.filter(f => f.completed).map(f => ({
+      name: f.name,
+      size: f.size,
+      key: f.key
+    }))
+  };
+
+  // Save order data
+  localStorage.setItem('cspOrder', JSON.stringify(orderData));
+
+  try {
+    continueBtn.textContent = 'Creating checkout session...';
+    continueBtn.disabled = true;
+
+    const response = await fetch('/api/create-checkout-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(orderData)
+    });
+
+    const result = await response.json();
+    
+    if (!response.ok || !result.ok) {
+      const errorMsg = result.message || result.error || 'Failed to create checkout session';
+      console.error('[CHECKOUT] Error:', result);
+      throw new Error(errorMsg);
+    }
+
+    if (result.url) {
+      console.log('[CHECKOUT] Redirecting to:', result.url);
+      // Direct navigation - no SPA interference
+      window.location.href = result.url;
+      return;
+    } else {
+      throw new Error('No checkout URL received from server');
+    }
+  } catch (error) {
+    console.error('[CHECKOUT] Failed:', error);
+    alert('Error creating checkout session: ' + error.message);
+    continueBtn.textContent = 'Continue to Payment';
+    continueBtn.disabled = false;
+  }
+});
+</script>
+</body></html>

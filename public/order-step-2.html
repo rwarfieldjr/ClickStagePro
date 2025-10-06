@@ -1,0 +1,286 @@
+<!doctype html><html><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Select Package - ClickStage Pro</title>
+<style>
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#f6f7f9;margin:0;padding:20px}
+  .container{max-width:600px;margin:0 auto}
+  .card{background:#fff;padding:32px;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.08)}
+  h1{margin:0 0 24px;color:#1f2937;font-size:28px;font-weight:600;text-align:center}
+  .subtitle{color:#6b7280;text-align:center;margin-bottom:32px;font-size:16px}
+  .form-group{margin-bottom:20px}
+  label{display:block;margin-bottom:8px;color:#374151;font-weight:500;font-size:14px}
+  select{width:100%;padding:12px 16px;border:1px solid #d1d5db;border-radius:8px;font-size:16px;box-sizing:border-box}
+  select:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,0.1)}
+  .bundle-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin:16px 0}
+  .bundle-option{border:2px solid #e5e7eb;border-radius:8px;padding:16px;text-align:center;cursor:pointer;transition:all 0.3s}
+  .bundle-option:hover{border-color:#2563eb}
+  .bundle-option.selected{border-color:#2563eb;background:#f0f4ff}
+  .bundle-price{font-size:18px;font-weight:600;color:#2563eb;margin:4px 0}
+  .btn{background:#2563eb;color:#fff;border:none;padding:14px 24px;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;width:100%;margin-top:24px}
+  .btn:hover{background:#1d4ed8}
+  .btn:disabled{background:#9ca3af;cursor:not-allowed}
+  .step-indicator{text-align:center;margin-bottom:24px;color:#6b7280;font-size:14px}
+  .step{display:inline-block;padding:4px 12px;margin:0 4px;border-radius:20px}
+  .step.active{background:#2563eb;color:#fff}
+  .styles-link{color:#2563eb;text-decoration:underline;cursor:pointer;font-size:14px;margin-left:8px;font-weight:normal}
+  .styles-link:hover{color:#1d4ed8}
+  .modal{display:none;position:fixed;z-index:1000;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.5);overflow:auto}
+  .modal.show{display:block}
+  .modal-content{background:#fff;margin:40px auto;padding:0;border-radius:12px;max-width:1200px;width:90%;max-height:85vh;overflow-y:auto;position:relative}
+  .modal-header{padding:20px 24px;border-bottom:1px solid #e5e7eb;position:sticky;top:0;background:#fff;z-index:10;border-radius:12px 12px 0 0}
+  .modal-body{padding:24px}
+  .close-btn{position:absolute;right:20px;top:20px;font-size:28px;font-weight:bold;color:#6b7280;cursor:pointer;background:none;border:none;line-height:1;padding:0;width:32px;height:32px;display:flex;align-items:center;justify-content:center}
+  .close-btn:hover{color:#1f2937}
+  .styles-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:24px}
+  .style-card{cursor:pointer;transition:transform 0.2s}
+  .style-card:hover{transform:translateY(-4px)}
+  .style-image{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;margin-bottom:12px}
+  .style-name{font-size:20px;font-weight:600;margin-bottom:8px;color:#1f2937}
+  .style-desc{font-size:14px;color:#6b7280;line-height:1.5}
+</style>
+</head><body>
+  <div class="container">
+    <div class="card">
+      <div class="step-indicator">
+        <span class="step">1. Contact Info</span>
+        <span class="step active">2. Select Package</span>
+        <span class="step">3. Payment</span>
+      </div>
+      
+      <h1>Select Style & Package</h1>
+      <p class="subtitle">Choose your preferred staging style and package size.</p>
+      
+      <div class="form-group">
+        <label for="style">
+          Staging Style 
+          <span class="styles-link" onclick="openStylesModal()">Click Here to See Styles</span>
+        </label>
+        <select id="style">
+          <option value="Modern">Modern</option>
+          <option value="Modern Farmhouse">Modern Farmhouse</option>
+          <option value="Transitional">Transitional</option>
+          <option value="Traditional">Traditional</option>
+          <option value="Scandinavian">Scandinavian</option>
+        </select>
+      </div>
+
+      <label style="margin-top:24px">Choose Your Package</label>
+      <div class="bundle-grid">
+        <div class="bundle-option" onclick="selectBundle(this, '1')">
+          <input type="radio" name="bundle" value="1">
+          <div style="font-weight:600">1 Photo</div>
+          <div class="bundle-price">$10</div>
+          <div style="font-size:12px;color:#6b7280">Perfect for testing</div>
+        </div>
+        <div class="bundle-option" onclick="selectBundle(this, '5')">
+          <input type="radio" name="bundle" value="5">
+          <div style="font-weight:600">5 Photos</div>
+          <div class="bundle-price">$45</div>
+          <div style="font-size:12px;color:#6b7280">$9 per photo</div>
+        </div>
+        <div class="bundle-option" onclick="selectBundle(this, '10')">
+          <input type="radio" name="bundle" value="10">
+          <div style="font-weight:600">10 Photos</div>
+          <div class="bundle-price">$85</div>
+          <div style="font-size:12px;color:#6b7280">$8.50 per photo</div>
+        </div>
+        <div class="bundle-option" onclick="selectBundle(this, '20')">
+          <input type="radio" name="bundle" value="20">
+          <div style="font-weight:600">20 Photos</div>
+          <div class="bundle-price">$160</div>
+          <div style="font-size:12px;color:#6b7280">$8 per photo</div>
+        </div>
+        <div class="bundle-option" onclick="selectBundle(this, '50')">
+          <input type="radio" name="bundle" value="50">
+          <div style="font-weight:600">50 Photos</div>
+          <div class="bundle-price">$375</div>
+          <div style="font-size:12px;color:#6b7280">$7.50 per photo</div>
+        </div>
+        <div class="bundle-option" onclick="selectBundle(this, '100')">
+          <input type="radio" name="bundle" value="100">
+          <div style="font-weight:600">100 Photos</div>
+          <div class="bundle-price">$700</div>
+          <div style="font-size:12px;color:#6b7280">$7 per photo</div>
+        </div>
+      </div>
+
+      <label style="margin-top:24px">Rush Delivery</label>
+      <div class="bundle-grid">
+        <div class="bundle-option" onclick="selectRush(this, 'no')">
+          <input type="radio" name="rush" value="no" checked>
+          <div style="font-weight:600">Standard</div>
+          <div class="bundle-price">Free</div>
+          <div style="font-size:12px;color:#6b7280">24-48 hours</div>
+        </div>
+        <div class="bundle-option" onclick="selectRush(this, 'yes')">
+          <input type="radio" name="rush" value="yes">
+          <div style="font-weight:600">Rush Delivery</div>
+          <div class="bundle-price">+$10/photo</div>
+          <div style="font-size:12px;color:#6b7280">Fast turnaround</div>
+        </div>
+      </div>
+      
+      <button id="toPay" class="btn">Continue to Payment</button>
+    </div>
+  </div>
+
+  <!-- Styles Modal -->
+  <div id="stylesModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 style="margin:0;font-size:24px;font-weight:600">Our Staging Styles</h2>
+        <button class="close-btn" onclick="closeStylesModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="color:#6b7280;margin-bottom:24px;text-align:center">Choose from our curated collection of professional staging styles designed to showcase your property's full potential</p>
+        <div class="styles-grid">
+          <div class="style-card">
+            <img src="attached_assets/Modern Farmhouse_1759407059537.png" alt="Modern Farmhouse" class="style-image">
+            <div class="style-name">Modern Farmhouse</div>
+            <div class="style-desc">Blending rustic charm with modern comfort, this style features neutral color palettes, natural wood accents, shiplap details, and cozy textiles.</div>
+          </div>
+          <div class="style-card">
+            <img src="attached_assets/Coastal_1759407059538.png" alt="Coastal" class="style-image">
+            <div class="style-name">Coastal</div>
+            <div class="style-desc">Inspired by beachside living, coastal style brings light and airy vibes with soft blues, sandy neutrals, natural textures like rattan and jute.</div>
+          </div>
+          <div class="style-card">
+            <img src="attached_assets/Scandinavian_1759407059537.png" alt="Scandinavian" class="style-image">
+            <div class="style-name">Scandinavian</div>
+            <div class="style-desc">Emphasizing simplicity and functionality, Scandinavian design features clean lines, minimal clutter, light wood tones, and a neutral color scheme.</div>
+          </div>
+          <div class="style-card">
+            <img src="attached_assets/Contemporary_1759407059538.png" alt="Contemporary" class="style-image">
+            <div class="style-name">Contemporary</div>
+            <div class="style-desc">Sleek and sophisticated, contemporary style showcases clean lines, neutral tones with bold accents, modern furniture, and minimal ornamentation.</div>
+          </div>
+          <div class="style-card">
+            <img src="attached_assets/Mid century modern_1759409797602.png" alt="Mid-Century Modern" class="style-image">
+            <div class="style-name">Mid-Century Modern</div>
+            <div class="style-desc">Characterized by iconic furniture pieces, organic shapes, and a mix of materials like wood and metal. Features clean lines and functionality.</div>
+          </div>
+          <div class="style-card">
+            <img src="attached_assets/Mountain rustic_1759407059537.png" alt="Mountain Rustic" class="style-image">
+            <div class="style-name">Mountain Rustic</div>
+            <div class="style-desc">Embracing natural materials like wood and stone, this style creates a cozy lodge-like atmosphere with warm earth tones and rustic textures.</div>
+          </div>
+          <div class="style-card">
+            <img src="attached_assets/Transitional_1759407059535.png" alt="Transitional" class="style-image">
+            <div class="style-name">Transitional</div>
+            <div class="style-desc">Perfectly balanced between traditional and contemporary, transitional style combines classic furniture silhouettes with modern finishes.</div>
+          </div>
+          <div class="style-card">
+            <img src="attached_assets/Japandi_1759409790021.png" alt="Japandi" class="style-image">
+            <div class="style-name">Japandi</div>
+            <div class="style-desc">A harmonious fusion of Japanese minimalism and Scandinavian functionality, featuring clean lines, natural materials, and neutral tones.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+function openStylesModal() {
+  document.getElementById('stylesModal').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeStylesModal() {
+  document.getElementById('stylesModal').classList.remove('show');
+  document.body.style.overflow = 'auto';
+}
+
+// Close modal when clicking outside of it
+window.onclick = function(event) {
+  const modal = document.getElementById('stylesModal');
+  if (event.target === modal) {
+    closeStylesModal();
+  }
+}
+
+
+function selectBundle(element, value) {
+  // Remove selected class from all bundle options
+  document.querySelectorAll('.bundle-option[onclick*="selectBundle"]').forEach(opt => opt.classList.remove('selected'));
+  // Add selected class to clicked option
+  element.classList.add('selected');
+  // Check the radio button
+  element.querySelector('input[type="radio"]').checked = true;
+}
+
+function selectRush(element, value) {
+  // Remove selected class from all rush options
+  document.querySelectorAll('.bundle-option[onclick*="selectRush"]').forEach(opt => opt.classList.remove('selected'));
+  // Add selected class to clicked option
+  element.classList.add('selected');
+  // Check the radio button
+  element.querySelector('input[type="radio"]').checked = true;
+}
+
+(function(){
+  const cust = localStorage.getItem('cspCustomer');
+  if(!cust){ location.href='/order-step-1.html'; return; }
+
+  async function createSession(payload){
+    const res = await fetch('/api/create-checkout-session', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const txt = await res.text();
+    let json; try { json = JSON.parse(txt); } catch { json = { raw: txt }; }
+    return { ok: res.ok, status: res.status, json };
+  }
+
+  function navigateToCheckout(url){
+    // Works in Replit Preview (iframe) and normal browser
+    if (window.top && window.top !== window) {
+      try { window.top.location.assign(url); return; } catch(e){}
+      try { window.open(url, '_blank'); return; } catch(e){}
+    }
+    window.location.assign(url);
+  }
+
+  const btn = document.getElementById('toPay');
+  const err = document.getElementById('err') || (function(){
+    const p = document.createElement('p'); p.id='err'; p.style.color='#b91c1c';
+    p.style.marginTop='8px'; p.style.display='none';
+    btn.parentElement.appendChild(p); return p;
+  })();
+
+  btn.addEventListener('click', async ()=>{
+    btn.disabled = true; btn.textContent = 'Starting checkout…';
+    const style = document.getElementById('style').value;
+    const picked = document.querySelector('input[name="bundle"]:checked');
+    const rush = document.querySelector('input[name="rush"]:checked');
+    if(!picked){ err.textContent='Please select a bundle.'; err.style.display='block';
+      btn.disabled=false; btn.textContent='Continue to Payment'; return; }
+
+    const payload = { 
+      style, 
+      bundle: picked.value, 
+      rush: rush ? rush.value : 'no',
+      customer: JSON.parse(cust) 
+    };
+    console.log('create-checkout-session payload', payload);
+
+    try{
+      const { ok, status, json } = await createSession(payload);
+      console.log('create-checkout-session response', status, json);
+      if(!ok || !json?.url){
+        err.textContent = (json && (json.error || json.message)) || `Checkout error (status ${status})`;
+        err.style.display='block';
+        btn.disabled=false; btn.textContent='Continue to Payment';
+        return;
+      }
+      navigateToCheckout(json.url);
+    }catch(e){
+      console.error('checkout error', e);
+      err.textContent='Network error starting checkout.';
+      err.style.display='block';
+      btn.disabled=false; btn.textContent='Continue to Payment';
+    }
+  });
+})();
+</script>
+</body></html>

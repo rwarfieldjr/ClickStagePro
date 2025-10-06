@@ -1,0 +1,82 @@
+modules = ["nodejs-20", "web", "postgresql-16"]
+run = "npm run dev"
+hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
+
+[nix]
+channel = "stable-24_05"
+packages = ["imagemagick_light"]
+
+[deployment]
+deploymentTarget = "autoscale"
+build = ["npm", "run", "build"]
+run = ["npm", "run", "start"]
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[[ports]]
+localPort = 35783
+externalPort = 4200
+
+[[ports]]
+localPort = 35837
+externalPort = 3000
+
+[[ports]]
+localPort = 37789
+externalPort = 5173
+
+[[ports]]
+localPort = 38875
+externalPort = 6000
+
+[[ports]]
+localPort = 39111
+externalPort = 3002
+
+[[ports]]
+localPort = 39993
+externalPort = 3001
+
+[[ports]]
+localPort = 42399
+externalPort = 5000
+
+[[ports]]
+localPort = 43753
+externalPort = 3003
+
+[[ports]]
+localPort = 44135
+externalPort = 6800
+
+[env]
+PORT = "5000"
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
+waitForPort = 5000
+
+[agent]
+integrations = ["javascript_mem_db:1.0.0", "dropbox:1.0.0", "javascript_object_storage:1.0.0", "javascript_stripe:1.0.0", "javascript_log_in_with_replit:1.0.0", "javascript_database:1.0.0"]
+
+[objectStorage]
+defaultBucketID = "replit-objstore-b539ba58-5381-4541-bcf3-2e4e8bbd0c1f"

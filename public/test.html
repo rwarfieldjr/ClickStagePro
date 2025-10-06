@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+<body>
+  <h3>R2 Upload Test</h3>
+  <input id="file" type="file" multiple />
+  <button id="go">Upload</button>
+  <pre id="out"></pre>
+
+<script>
+const out = document.getElementById('out');
+
+document.getElementById('go').onclick = async () => {
+  const files = document.getElementById('file').files;
+  if (!files.length) return alert('Pick a file');
+
+  for (const f of files) {
+    // 1) Ask your server for a presigned PUT URL
+    const r1 = await fetch('/api/r2/upload-url', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ submissionId: 'test', filename: f.name, mime: f.type })
+    });
+    if (!r1.ok) { out.textContent += 'upload-url error\n'; return; }
+    const { uploadUrl, key } = await r1.json();
+
+    // 2) Upload file directly to R2
+    const r2 = await fetch(uploadUrl, { method: 'PUT', body: f });
+    if (!r2.ok) { out.textContent += `PUT failed: ${f.name}\n`; continue; }
+
+    // 3) Get a signed download link (forces Save As)
+    const r3 = await fetch('/api/r2/download-url', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ key, asFilename: f.name })
+    });
+    const { url } = await r3.json();
+
+    out.textContent += `Uploaded: ${f.name}\nDownload: ${url}\n\n`;
+  }
+};
+</script>
+</body>
+</html>
