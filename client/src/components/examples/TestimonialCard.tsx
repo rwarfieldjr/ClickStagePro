@@ -1,6 +1,6 @@
 import { TestimonialCard } from '../TestimonialCard'
-import clientAvatar from '@assets/generated_images/Client_testimonial_headshot_2499fd21.png'
-import agentAvatar from '@assets/generated_images/Agent_testimonial_headshot_2d12ee28.png'
+import clientAvatar from '@/assets/styles/placeholder.png'
+import agentAvatar from '@/assets/styles/placeholder.png'
 
 export default function TestimonialCardExample() {
   return (

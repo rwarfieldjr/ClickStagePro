@@ -9,8 +9,8 @@ export default function BillingPage() {
 
   const managePortalMutation = useMutation({
     mutationFn: async () => {
-      const r = await fetch('/api/billing/create-portal-session', {
-        method: 'POST',
+      const r = await fetch('/api/billing/portal', {
+        method: 'GET',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include'
       });

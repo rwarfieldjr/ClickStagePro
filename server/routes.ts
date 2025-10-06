@@ -986,11 +986,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create a Checkout Session for subscriptions or one-time payments
-  app.post("/api/billing/create-checkout-session", isAuthenticated, async (req: any, res) => {
+  // Back-compat and alias per spec: POST /api/checkout/session
+  app.post("/api/checkout/session", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id as string;
       const email = req.user.email as string | undefined;
-      const { priceId, mode } = (req.body || {}) as { priceId?: string; mode?: 'subscription' | 'payment' };
+      const { priceId, quantity, customerEmail, metadata, mode } = (req.body || {}) as { priceId?: string; quantity?: number; customerEmail?: string; metadata?: Record<string,string>; mode?: 'subscription' | 'payment' };
 
       if (!priceId) return res.status(400).json({ message: "priceId required" });
 
@@ -1011,9 +1012,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success_url: `${baseUrl}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${baseUrl}/payment-cancel`,
         customer: customerId,
-        line_items: [{ price: priceId, quantity: 1 }],
+        line_items: [{ price: priceId, quantity: quantity && quantity > 0 ? quantity : 1 }],
         allow_promotion_codes: true,
         client_reference_id: userId,
+        customer_email: customerEmail,
+        metadata,
       }, {
         idempotencyKey: `checkout:${userId}:${priceId}:${new Date().toISOString().slice(0,10)}`,
       });
@@ -1025,8 +1028,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create a Billing Portal Session
-  app.post("/api/billing/create-portal-session", isAuthenticated, async (req: any, res) => {
+  // Create a Checkout Session: keep original path for existing client
+  app.post("/api/billing/create-checkout-session", isAuthenticated, async (req: any, res) => {
+    req.url = "/api/checkout/session"; // delegate to handler above
+    return (app as any)._router.handle(req, res);
+  });
+
+  // Create a Billing Portal Session (GET per spec)
+  app.get("/api/billing/portal", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id as string;
       const baseUrl = process.env.APP_URL || (req.protocol + '://' + req.get('host'));
@@ -1036,7 +1045,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const portal = await stripe.billingPortal.sessions.create({
         customer: mapping.customerId,
-        return_url: `${baseUrl}/account`,
+        return_url: `${baseUrl}/account/billing`,
       });
       return res.json({ url: portal.url });
     } catch (err: any) {

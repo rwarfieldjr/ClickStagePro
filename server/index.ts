@@ -16,6 +16,7 @@ import { billingEnv } from "../src/config/billingEnv";
 const app = express();
 
 // Stripe webhooks need raw body for signature verification - apply express.raw to webhook paths
+app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
 app.use('/api/stripe-webhook', express.raw({ type: 'application/json' }));
 app.use('/api/webhooks/stripe', express.raw({ type: 'application/json' }));
 app.use('/api/billing/webhook', express.raw({ type: 'application/json' }));
@@ -47,6 +48,7 @@ app.use((req, res, next) => {
 });
 
 // Rate limiting for key endpoints (protects against accidental hammering)
+app.use("/api/stripe/webhook", rateLimit({ windowMs: 60_000, max: 300, standardHeaders: true, legacyHeaders: false })); // Stripe retries are bursty but safe
 app.use("/api/stripe-webhook", rateLimit({ windowMs: 60_000, max: 300, standardHeaders: true, legacyHeaders: false })); // Stripe retries are bursty but safe
 app.use("/api/webhooks/stripe", rateLimit({ windowMs: 60_000, max: 300, standardHeaders: true, legacyHeaders: false })); // Same limit for webhook alias
 app.use("/api/r2/upload-url", rateLimit({ windowMs: 60_000, max: 240 })); // 240/min per IP
