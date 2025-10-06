@@ -144,6 +144,38 @@ export const creditBalance = pgTable("credit_balance", {
   autoExtendEnabled: boolean("auto_extend_enabled").default(false),
 });
 
+// Stripe customer mapping table (one stripe customer per user)
+export const stripeCustomers = pgTable(
+  "stripe_customers",
+  {
+    userId: varchar("user_id").notNull().references(() => users.id),
+    customerId: text("customer_id").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    userUnique: uniqueIndex("stripe_customers_user_unique").on(t.userId),
+    customerUnique: uniqueIndex("stripe_customers_customer_unique").on(t.customerId),
+  })
+);
+
+// Active subscription snapshot for the user (Stripe is source of truth)
+export const subscriptions = pgTable(
+  "subscriptions",
+  {
+    id: text("id").primaryKey(), // Stripe subscription id
+    userId: varchar("user_id").notNull().references(() => users.id),
+    status: text("status").notNull(),
+    priceId: text("price_id"),
+    currentPeriodEnd: timestamp("current_period_end"),
+    cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    userIdx: index("subscriptions_user_idx").on(t.userId),
+  })
+);
+
 // Upsert user schema for Replit Auth
 export const upsertUserSchema = createInsertSchema(users).omit({
   createdAt: true,

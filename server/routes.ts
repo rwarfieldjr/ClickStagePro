@@ -42,6 +42,9 @@ interface AuthenticatedRequest extends Request {
 import { userKey, listDir, ensureFolder, moveObject, deleteObject, deletePrefix, renamePrefix, signPut } from "./lib/r2";
 import { format } from "date-fns";
 import { billingEnv } from "../src/config/billingEnv";
+import { db } from "./db";
+import { stripeCustomers, subscriptions } from "@shared/schema";
+import { eq } from "drizzle-orm";
 import { authDebug } from "./auth-debug";
 
 // Initialize Stripe with centralized billing config
@@ -197,7 +200,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Legacy endpoint for compatibility
+  // Unified current-user endpoint
   app.get("/api/auth/me", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
@@ -224,7 +227,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Return user info (without sensitive data)
+      // Return normalized user info
       res.json({
         success: true,
         user: {
@@ -233,7 +236,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           firstName: user.firstName,
           lastName: user.lastName,
           profileImageUrl: user.profileImageUrl,
-          createdAt: user.createdAt
+          createdAt: user.createdAt,
+          stripeCustomerId: user.stripeCustomerId ?? null,
         }
       });
     } catch (error) {
@@ -615,6 +619,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Handle the event
     try {
       switch (event.type) {
+        case 'checkout.session.completed': {
+          const session = event.data.object as Stripe.Checkout.Session;
+          const customerId = session.customer as string | null;
+          if (customerId) {
+            const mapping = await db.query.stripeCustomers.findFirst({
+              where: eq(stripeCustomers.customerId, customerId)
+            });
+            if (mapping && session.subscription) {
+              const sub = await stripe.subscriptions.retrieve(String(session.subscription));
+              await db
+                .insert(subscriptions)
+                .values({
+                  id: sub.id,
+                  userId: mapping.userId,
+                  status: sub.status,
+                  priceId: sub.items.data[0]?.price?.id || null,
+                  currentPeriodEnd: sub.current_period_end ? new Date(sub.current_period_end * 1000) : null,
+                  cancelAtPeriodEnd: sub.cancel_at_period_end ?? false,
+                  createdAt: new Date(),
+                  updatedAt: new Date(),
+                })
+                .onConflictDoUpdate({
+                  target: subscriptions.id,
+                  set: {
+                    status: sub.status,
+                    priceId: sub.items.data[0]?.price?.id || null,
+                    currentPeriodEnd: sub.current_period_end ? new Date(sub.current_period_end * 1000) : null,
+                    cancelAtPeriodEnd: sub.cancel_at_period_end ?? false,
+                    updatedAt: new Date(),
+                  }
+                });
+            }
+          }
+          break;
+        }
+        case 'customer.subscription.updated':
+        case 'customer.subscription.deleted':
+        case 'customer.subscription.created': {
+          const sub = event.data.object as Stripe.Subscription;
+          const customerId = sub.customer as string | null;
+          if (customerId) {
+            const mapping = await db.query.stripeCustomers.findFirst({
+              where: eq(stripeCustomers.customerId, customerId)
+            });
+            if (mapping) {
+              await db
+                .insert(subscriptions)
+                .values({
+                  id: sub.id,
+                  userId: mapping.userId,
+                  status: sub.status,
+                  priceId: sub.items.data[0]?.price?.id || null,
+                  currentPeriodEnd: sub.current_period_end ? new Date(sub.current_period_end * 1000) : null,
+                  cancelAtPeriodEnd: sub.cancel_at_period_end ?? false,
+                  createdAt: new Date(),
+                  updatedAt: new Date(),
+                })
+                .onConflictDoUpdate({
+                  target: subscriptions.id,
+                  set: {
+                    status: sub.status,
+                    priceId: sub.items.data[0]?.price?.id || null,
+                    currentPeriodEnd: sub.current_period_end ? new Date(sub.current_period_end * 1000) : null,
+                    cancelAtPeriodEnd: sub.cancel_at_period_end ?? false,
+                    updatedAt: new Date(),
+                  }
+                });
+            }
+          }
+          break;
+        }
         case 'payment_intent.succeeded':
           const paymentIntent = event.data.object as any;
           console.log('PaymentIntent succeeded:', paymentIntent.id);
@@ -908,6 +983,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get Stripe publishable key (environment-aware)
   app.get("/api/billing/public-key", (_req, res) => {
     res.json({ publishableKey: billingEnv.stripePublishableKey });
+  });
+
+  // Create a Checkout Session for subscriptions or one-time payments
+  app.post("/api/billing/create-checkout-session", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id as string;
+      const email = req.user.email as string | undefined;
+      const { priceId, mode } = (req.body || {}) as { priceId?: string; mode?: 'subscription' | 'payment' };
+
+      if (!priceId) return res.status(400).json({ message: "priceId required" });
+
+      // Ensure a Stripe customer exists and persist mapping
+      let customerId: string | undefined;
+      const existing = await db.query.stripeCustomers.findFirst({ where: eq(stripeCustomers.userId, userId) });
+      if (existing) {
+        customerId = existing.customerId;
+      } else {
+        const customer = await stripe.customers.create({ email });
+        customerId = customer.id;
+        await db.insert(stripeCustomers).values({ userId, customerId });
+      }
+
+      const baseUrl = process.env.APP_URL || (req.protocol + '://' + req.get('host'));
+      const session = await stripe.checkout.sessions.create({
+        mode: mode || 'subscription',
+        success_url: `${baseUrl}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${baseUrl}/payment-cancel`,
+        customer: customerId,
+        line_items: [{ price: priceId, quantity: 1 }],
+        allow_promotion_codes: true,
+        client_reference_id: userId,
+      }, {
+        idempotencyKey: `checkout:${userId}:${priceId}:${new Date().toISOString().slice(0,10)}`,
+      });
+
+      return res.json({ url: session.url });
+    } catch (err: any) {
+      console.error("[billing] checkout session error", { message: err.message, code: err.code });
+      return res.status(500).json({ message: "Internal error" });
+    }
+  });
+
+  // Create a Billing Portal Session
+  app.post("/api/billing/create-portal-session", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id as string;
+      const baseUrl = process.env.APP_URL || (req.protocol + '://' + req.get('host'));
+
+      const mapping = await db.query.stripeCustomers.findFirst({ where: eq(stripeCustomers.userId, userId) });
+      if (!mapping) return res.status(400).json({ message: "No Stripe customer found" });
+
+      const portal = await stripe.billingPortal.sessions.create({
+        customer: mapping.customerId,
+        return_url: `${baseUrl}/account`,
+      });
+      return res.json({ url: portal.url });
+    } catch (err: any) {
+      console.error("[billing] portal session error", { message: err.message, code: err.code });
+      return res.status(500).json({ message: "Internal error" });
+    }
   });
   
   // Create SetupIntent for adding new payment methods

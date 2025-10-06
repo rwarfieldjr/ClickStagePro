@@ -251,7 +251,7 @@ export function Header() {
                     asChild
                     data-testid="button-client-portal"
                   >
-                    <Link href="/client-portal">
+                    <Link href="/account">
                       <User className="mr-2 h-4 w-4" />
                       Client Portal
                     </Link>

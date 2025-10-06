@@ -34,19 +34,21 @@ app.use((req, _res, next) => {
 app.use((req, res, next) => {
   res.setHeader(
     'Content-Security-Policy',
-    "default-src 'self'; " +
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com; " +
-    "frame-src 'self' https://js.stripe.com; " +
-    "connect-src 'self' https://api.stripe.com; " +
-    "img-src 'self' data: https:; " +
-    "style-src 'self' 'unsafe-inline';"
+    [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com",
+      "frame-src 'self' https://js.stripe.com",
+      "connect-src 'self' https://api.stripe.com",
+      "img-src 'self' data: https:",
+      "style-src 'self' 'unsafe-inline'"
+    ].join('; ')
   );
   next();
 });
 
 // Rate limiting for key endpoints (protects against accidental hammering)
-app.use("/api/stripe-webhook", rateLimit({ windowMs: 60_000, max: 300 })); // Stripe retries are bursty but safe
-app.use("/api/webhooks/stripe", rateLimit({ windowMs: 60_000, max: 300 })); // Same limit for webhook alias
+app.use("/api/stripe-webhook", rateLimit({ windowMs: 60_000, max: 300, standardHeaders: true, legacyHeaders: false })); // Stripe retries are bursty but safe
+app.use("/api/webhooks/stripe", rateLimit({ windowMs: 60_000, max: 300, standardHeaders: true, legacyHeaders: false })); // Same limit for webhook alias
 app.use("/api/r2/upload-url", rateLimit({ windowMs: 60_000, max: 240 })); // 240/min per IP
 app.use("/api/uploads/presign", rateLimit({ windowMs: 60_000, max: 240 })); // 240/min per IP
 app.use("/api/credits", rateLimit({ windowMs: 60_000, max: 120 })); // 120/min per IP for all credit endpoints
