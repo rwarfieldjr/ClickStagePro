@@ -6,3 +6,9 @@ vite.config.ts.*
 *.tar.gz
 # local scratch assets
 attached_assets/
+.env
+.env.*
+replit_secrets
+node_modules
+dist
+.DS_Store
