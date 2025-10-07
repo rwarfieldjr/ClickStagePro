@@ -1,4 +1,4 @@
-import { createContext, useContext, ReactNode, useState, useEffect } from 'react'
+import { createContext, useContext, ReactNode, useState, useEffect, useCallback } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { apiRequest, queryClient } from '@/lib/queryClient'
 import { useToast } from '@/hooks/use-toast'
@@ -43,6 +43,75 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [token, setToken] = useState<string | null>(() => {
     return localStorage.getItem('supabase_token')
   })
+  const [refreshToken, setRefreshToken] = useState<string | null>(() => {
+    return localStorage.getItem('supabase_refresh_token')
+  })
+  const [expiresAt, setExpiresAt] = useState<number | null>(() => {
+    const storedExpiry = localStorage.getItem('supabase_token_expires_at')
+    return storedExpiry ? parseInt(storedExpiry) : null
+  })
+
+  // Auto-refresh token before it expires
+  useEffect(() => {
+    if (!refreshToken || !expiresAt) return
+
+    const expiryTime = expiresAt * 1000 // Convert to milliseconds
+    const now = Date.now()
+    const timeUntilExpiry = expiryTime - now
+    
+    // Refresh 5 minutes before expiry
+    const refreshTime = Math.max(0, timeUntilExpiry - 5 * 60 * 1000)
+
+    const refreshTimeout = setTimeout(async () => {
+      try {
+        const response = await fetch('/api/refresh', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ refresh_token: refreshToken }),
+        })
+
+        if (!response.ok) {
+          throw new Error('Token refresh failed')
+        }
+
+        const data = await response.json()
+        
+        if (data.session?.access_token) {
+          localStorage.setItem('supabase_token', data.session.access_token)
+          setToken(data.session.access_token)
+          
+          if (data.session.refresh_token) {
+            localStorage.setItem('supabase_refresh_token', data.session.refresh_token)
+            setRefreshToken(data.session.refresh_token)
+          }
+          
+          if (data.session.expires_at) {
+            const newExpiry = data.session.expires_at
+            localStorage.setItem('supabase_token_expires_at', newExpiry.toString())
+            setExpiresAt(newExpiry) // Update state to trigger next refresh
+          }
+        }
+      } catch (error) {
+        console.error('Auto token refresh failed:', error)
+        // Clear tokens and force re-login
+        localStorage.removeItem('supabase_token')
+        localStorage.removeItem('supabase_refresh_token')
+        localStorage.removeItem('supabase_token_expires_at')
+        setToken(null)
+        setRefreshToken(null)
+        setExpiresAt(null)
+        toast({
+          title: "Session expired",
+          description: "Please log in again",
+          variant: "destructive"
+        })
+      }
+    }, refreshTime)
+
+    return () => clearTimeout(refreshTimeout)
+  }, [refreshToken, expiresAt, toast])
 
   // Query to check authentication status
   const { data: userSession, isLoading, refetch } = useQuery<UserSessionResponse>({
@@ -58,9 +127,57 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       if (!response.ok) {
         if (response.status === 401) {
-          // Token is invalid, clear it
+          // Token is invalid, try to refresh
+          if (refreshToken) {
+            try {
+              const refreshResponse = await fetch('/api/refresh', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ refresh_token: refreshToken }),
+              })
+
+              if (refreshResponse.ok) {
+                const refreshData = await refreshResponse.json()
+                if (refreshData.session?.access_token) {
+                  localStorage.setItem('supabase_token', refreshData.session.access_token)
+                  setToken(refreshData.session.access_token)
+                  
+                  if (refreshData.session.refresh_token) {
+                    localStorage.setItem('supabase_refresh_token', refreshData.session.refresh_token)
+                    setRefreshToken(refreshData.session.refresh_token)
+                  }
+                  
+                  if (refreshData.session.expires_at) {
+                    localStorage.setItem('supabase_token_expires_at', refreshData.session.expires_at.toString())
+                    setExpiresAt(refreshData.session.expires_at)
+                  }
+
+                  // Retry the original request with new token
+                  const retryResponse = await fetch('/api/auth/me', {
+                    headers: {
+                      'Authorization': `Bearer ${refreshData.session.access_token}`,
+                    },
+                  })
+                  
+                  if (retryResponse.ok) {
+                    return retryResponse.json()
+                  }
+                }
+              }
+            } catch (refreshError) {
+              console.error('Token refresh failed:', refreshError)
+            }
+          }
+
+          // If refresh failed or no refresh token, clear everything
           localStorage.removeItem('supabase_token')
+          localStorage.removeItem('supabase_refresh_token')
+          localStorage.removeItem('supabase_token_expires_at')
           setToken(null)
+          setRefreshToken(null)
+          setExpiresAt(null)
           return null
         }
         throw new Error('Failed to fetch user')
@@ -97,9 +214,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
     },
     onSuccess: (data) => {
       if (data.session?.access_token) {
-        // Email/password login - got a token
+        // Email/password login - got tokens
         localStorage.setItem('supabase_token', data.session.access_token)
         setToken(data.session.access_token)
+        
+        if (data.session.refresh_token) {
+          localStorage.setItem('supabase_refresh_token', data.session.refresh_token)
+          setRefreshToken(data.session.refresh_token)
+        }
+        
+        if (data.session.expires_at) {
+          localStorage.setItem('supabase_token_expires_at', data.session.expires_at.toString())
+          setExpiresAt(data.session.expires_at)
+        }
+
         queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] })
         toast({
           title: "Logged in successfully",
@@ -149,6 +277,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (data.session?.access_token) {
         localStorage.setItem('supabase_token', data.session.access_token)
         setToken(data.session.access_token)
+        
+        if (data.session.refresh_token) {
+          localStorage.setItem('supabase_refresh_token', data.session.refresh_token)
+          setRefreshToken(data.session.refresh_token)
+        }
+        
+        if (data.session.expires_at) {
+          localStorage.setItem('supabase_token_expires_at', data.session.expires_at.toString())
+          setExpiresAt(data.session.expires_at)
+        }
+
         queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] })
         toast({
           title: "Account created successfully",
@@ -185,7 +324,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     },
     onSuccess: () => {
       localStorage.removeItem('supabase_token')
+      localStorage.removeItem('supabase_refresh_token')
+      localStorage.removeItem('supabase_token_expires_at')
       setToken(null)
+      setRefreshToken(null)
+      setExpiresAt(null)
       queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] })
       toast({
         title: "Logged out successfully",
@@ -194,14 +337,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
     },
     onError: (error) => {
       console.error('Logout error:', error)
-      // Even if logout fails, clear local token
+      // Even if logout fails, clear local tokens
       localStorage.removeItem('supabase_token')
+      localStorage.removeItem('supabase_refresh_token')
+      localStorage.removeItem('supabase_token_expires_at')
       setToken(null)
+      setRefreshToken(null)
+      setExpiresAt(null)
       queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] })
       toast({
-        title: "Logout failed",
-        description: "There was an error logging you out, but you've been signed out locally.",
-        variant: "destructive"
+        title: "Logged out",
+        description: "You've been signed out locally.",
       })
     }
   })

@@ -128,6 +128,35 @@ export async function setupAuth(app: Express) {
     }
   });
 
+  // Token refresh endpoint
+  app.post("/api/refresh", async (req, res) => {
+    const { refresh_token } = req.body;
+
+    if (!refresh_token) {
+      return res.status(400).json({ error: "Refresh token is required" });
+    }
+
+    try {
+      const { data, error } = await supabase.auth.refreshSession({
+        refresh_token,
+      });
+
+      if (error) throw error;
+
+      return res.json({
+        success: true,
+        session: {
+          access_token: data.session?.access_token,
+          refresh_token: data.session?.refresh_token,
+          expires_at: data.session?.expires_at,
+        },
+      });
+    } catch (error: any) {
+      console.error("Token refresh error:", error);
+      return res.status(401).json({ error: error.message || "Token refresh failed" });
+    }
+  });
+
   // Logout endpoint
   app.post("/api/logout", async (req, res) => {
     const token = req.headers.authorization?.split(" ")[1];
@@ -137,11 +166,15 @@ export async function setupAuth(app: Express) {
     }
 
     try {
+      // Note: This performs client-side signout only
+      // For server-side session revocation, SUPABASE_SERVICE_ROLE_KEY is required
+      // Client must clear tokens regardless
       await supabase.auth.signOut();
-      return res.json({ success: true });
+      return res.json({ success: true, message: "Logged out (client-side)" });
     } catch (error: any) {
       console.error("Logout error:", error);
-      return res.status(500).json({ error: error.message || "Logout failed" });
+      // Even if server logout fails, client should clear tokens
+      return res.json({ success: true, message: "Client-side logout" });
     }
   });
 
