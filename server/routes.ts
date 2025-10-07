@@ -21,7 +21,7 @@ import { sendNewRequestNotification, sendClientConfirmation, sendContactFormNoti
 import { ObjectStorageService } from "./objectStorage";
 import { fileValidationService, FILE_VALIDATION_CONFIG } from "./fileValidation";
 import multer, { MulterError } from "multer";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupAuth, isAuthenticated } from "./supabaseAuth";
 import { pool } from "./db";
 import { grantCreditsFromStripe, findOrCreateUserIdByEmail, addCreditsWrapper, priceToPackRule } from "./credits";
 import { 
@@ -185,7 +185,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Auth routes - Get current user
+  // Auth routes handled by supabaseAuth.ts
+  // /api/login, /api/signup, /api/logout, /api/auth/me are defined in supabaseAuth setupAuth()
+  
+  // Additional user endpoint for backward compatibility
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
@@ -194,54 +197,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
-    }
-  });
-
-  // Legacy endpoint for compatibility
-  app.get("/api/auth/me", isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const email = req.user.email;
-      
-      let user = await storage.getUser(userId);
-      
-      // Auto-create user if they don't exist (for dev auth or first-time Replit auth users)
-      if (!user && email) {
-        console.log(`Creating new user: ${userId} (${email})`);
-        user = await storage.createUser({
-          id: userId,
-          email: email,
-          firstName: email.split('@')[0],
-          lastName: '',
-          profileImageUrl: null
-        });
-      }
-      
-      if (!user) {
-        return res.status(404).json({
-          success: false,
-          message: "User not found"
-        });
-      }
-
-      // Return user info (without sensitive data)
-      res.json({
-        success: true,
-        user: {
-          id: user.id,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          profileImageUrl: user.profileImageUrl,
-          createdAt: user.createdAt
-        }
-      });
-    } catch (error) {
-      console.error('Get current user error:', error);
-      res.status(500).json({
-        success: false,
-        message: "An error occurred while fetching user information"
-      });
     }
   });
 
