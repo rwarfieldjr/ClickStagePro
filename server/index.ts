@@ -14,6 +14,7 @@ import * as aiService from "./openai";
 import { billingEnv } from "../src/config/billingEnv";
 
 const app = express();
+export default app;
 
 // Stripe webhooks need raw body for signature verification - apply express.raw to webhook paths
 app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
