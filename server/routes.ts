@@ -153,6 +153,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Lightweight Supabase connectivity/insertion test
+  // Works in both Replit.dev and Replit.app since it relies on path routing only
+  async function supabaseInsertTest(req: Request, res: Response) {
+    try {
+      const SUPABASE_URL = process.env.SUPABASE_URL;
+      const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY;
+
+      if (!SUPABASE_URL || !SERVICE_KEY) {
+        return res.status(503).json({ ok: false, error: "Supabase not configured", missing: { SUPABASE_URL: !SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY: !SERVICE_KEY } });
+      }
+
+      const rid = (req as any).rid || Math.random().toString(36).slice(2, 10);
+      const payload = [{
+        source: "clickstagepro",
+        request_id: rid,
+        env: process.env.APP_ENV || process.env.NODE_ENV || "development",
+        host: req.headers.host,
+        path: req.originalUrl,
+        method: req.method,
+        user_agent: req.headers["user-agent"]
+      }];
+
+      const endpoint = `${SUPABASE_URL.replace(/\/$/, "")}/rest/v1/test_events`;
+      const r = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "apikey": SERVICE_KEY,
+          "Authorization": `Bearer ${SERVICE_KEY}`,
+          "Content-Type": "application/json",
+          "Prefer": "return=representation"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const text = await r.text();
+      if (!r.ok) {
+        return res.status(r.status).json({ ok: false, status: r.status, body: text });
+      }
+
+      let data: any = undefined;
+      try { data = JSON.parse(text); } catch {}
+      return res.json({ ok: true, inserted: Array.isArray(data) ? data.length : 1, data });
+    } catch (e: any) {
+      return res.status(500).json({ ok: false, error: e.message });
+    }
+  }
+
+  app.get("/api/test-supabase", supabaseInsertTest);
+  app.post("/api/test-supabase", supabaseInsertTest);
+
   // Metrics endpoint - Very light auth: gate behind env flag
   const ENABLE_METRICS = process.env.ENABLE_METRICS === "1";
 
