@@ -6,6 +6,15 @@ ClickStage Pro is a modern virtual staging platform that transforms empty proper
 
 ## Recent Changes
 
+### Streamlined Authentication Flow (October 2025)
+- ✅ **Removed Client Portal Landing Page**: Eliminated the yellow "Sign in required" intermediate page
+- ✅ **Direct Login Flow**: "Sign In" button in header now links directly to `/login` instead of `/client-portal`
+- ✅ **Automatic Dashboard Redirect**: After successful login, users are automatically redirected to `/account` dashboard
+- ✅ **Smart /client-portal Redirect**: The `/client-portal` route now automatically redirects:
+  - Logged-out users → `/login`
+  - Logged-in users → `/account`
+- ✅ **Updated UI Text**: Changed "Client Portal" to "Sign In" for clearer user intent
+
 ### Production Deployment Preparation (October 2025)
 - ✅ **CRITICAL FIX**: Changed credit system to use `APP_ENV` instead of `NODE_ENV` for production detection
   - Previously: Used `NODE_ENV !== 'production'` which would fail in production (NODE_ENV stays "development" on Replit)
