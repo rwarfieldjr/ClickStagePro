@@ -252,9 +252,9 @@ export function Header() {
                     className="text-muted-foreground"
                     data-testid="button-client-portal"
                   >
-                    <Link href="/client-portal">
+                    <Link href="/login">
                       <User className="mr-2 h-4 w-4" />
-                      Client Portal
+                      Sign In
                     </Link>
                   </Button>
                 </TooltipTrigger>
