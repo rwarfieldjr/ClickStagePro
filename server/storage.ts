@@ -30,9 +30,11 @@ export interface IStorage {
   // User operations
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
+  getUserBySupabaseId(supabaseId: string): Promise<User | undefined>;
   createUser(user: UpsertUser): Promise<User>;
   upsertUser(data: {
-    replitId: string;
+    replitId?: string;
+    supabaseId?: string;
     username?: string;
     firstName?: string;
     lastName?: string;
@@ -127,31 +129,52 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
+  async getUserBySupabaseId(supabaseId: string): Promise<User | undefined> {
+    const result = await db.select().from(users).where(eq(users.supabaseId, supabaseId)).limit(1);
+    return result[0];
+  }
+
   async createUser(insertUser: UpsertUser): Promise<User> {
     const result = await db.insert(users).values(insertUser).returning();
     return result[0];
   }
 
   async upsertUser(data: {
-    replitId: string;
+    replitId?: string;
+    supabaseId?: string;
     username?: string;
     firstName?: string;
     lastName?: string;
     email: string;
     profileImageUrl?: string;
   }): Promise<User> {
-    // First try to find existing user by replit ID
-    const existing = await db
-      .select()
-      .from(users)
-      .where(eq(users.replitId, data.replitId))
-      .limit(1);
+    let existing: User[] = [];
+
+    // First try to find existing user by supabase ID if provided
+    if (data.supabaseId) {
+      existing = await db
+        .select()
+        .from(users)
+        .where(eq(users.supabaseId, data.supabaseId))
+        .limit(1);
+    }
+
+    // If not found and replitId provided, try finding by replit ID
+    if (existing.length === 0 && data.replitId) {
+      existing = await db
+        .select()
+        .from(users)
+        .where(eq(users.replitId, data.replitId))
+        .limit(1);
+    }
 
     if (existing.length > 0) {
       // Update existing user
       const result = await db
         .update(users)
         .set({
+          supabaseId: data.supabaseId || existing[0].supabaseId,
+          replitId: data.replitId || existing[0].replitId,
           username: data.username || existing[0].username,
           firstName: data.firstName || existing[0].firstName,
           lastName: data.lastName || existing[0].lastName,
@@ -166,7 +189,8 @@ export class DatabaseStorage implements IStorage {
       const result = await db
         .insert(users)
         .values({
-          replitId: data.replitId,
+          supabaseId: data.supabaseId || null,
+          replitId: data.replitId || null,
           username: data.username || null,
           firstName: data.firstName || null,
           lastName: data.lastName || null,

@@ -3,10 +3,11 @@ import { pgTable, text, varchar, timestamp, integer, boolean, jsonb, index, uniq
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// User storage table - compatible with Replit Auth
+// User storage table - compatible with Supabase Auth and Replit Auth
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  replitId: varchar("replit_id").unique(), // Replit Auth user ID
+  replitId: varchar("replit_id").unique(), // Replit Auth user ID (legacy)
+  supabaseId: varchar("supabase_id").unique(), // Supabase Auth user ID
   username: varchar("username"),
   email: varchar("email").unique(),
   firstName: varchar("first_name"),
