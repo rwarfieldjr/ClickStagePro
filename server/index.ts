@@ -41,7 +41,7 @@ app.get('/api/test-supabase', async (req, res) => {
 
     if (error) throw error;
     res.json({ success: true, data });
-  } catch (err) {
+  } catch (err: any) {
     console.error('Supabase insert failed:', err);
     res.status(500).json({ success: false, error: err.message });
   }
