@@ -246,9 +246,10 @@ export function Header() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    variant="default"
+                    variant="outline"
                     size="default"
                     asChild
+                    className="text-muted-foreground"
                     data-testid="button-client-portal"
                   >
                     <Link href="/client-portal">
