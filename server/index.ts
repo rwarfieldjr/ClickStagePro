@@ -721,15 +721,15 @@ app.post("/api/create-checkout-session", async (req, res) => {
     const bundle = Number(body.bundle || body.package || body.pkg || 0);
     const { style, customer, files } = body;
 
-    if (!process.env.STRIPE_SECRET_KEY) {
-      console.error("[CHECKOUT] Missing STRIPE_SECRET_KEY");
+    if (!billingEnv.stripeSecretKey) {
+      console.error("[CHECKOUT] Missing Stripe secret key");
       return res
         .status(503)
         .json({ ok: false, message: "Stripe not configured" });
     }
 
     // Runtime guard: refuse test keys in production (unless in development/testing environment)
-    const isTestKey = process.env.STRIPE_SECRET_KEY.startsWith("sk_test_");
+    const isTestKey = billingEnv.stripeSecretKey.startsWith("sk_test_");
     const isDevEnvironment =
       process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test";
     if (isTestKey && !isDevEnvironment) {
@@ -760,7 +760,7 @@ app.post("/api/create-checkout-session", async (req, res) => {
     console.log("[CHECKOUT] Creating session:", {
       bundle,
       priceId: priceId.substring(0, 20) + "...",
-      mode: "live",
+      mode: billingEnv.isProd ? "live" : "test",
       fileCount: files?.length || 0,
     });
 
@@ -808,7 +808,7 @@ app.post("/api/create-checkout-session", async (req, res) => {
 
 // Debug endpoint to verify Stripe configuration
 app.get("/api/debug/stripe", (req, res) => {
-  const isLive = process.env.STRIPE_SECRET_KEY?.startsWith("sk_live_");
+  const isLive = billingEnv.stripeSecretKey?.startsWith("sk_live_");
   const prices = Object.fromEntries(
     Object.entries(PRICE_MAP).map(([k, v]) => [
       k,
@@ -818,8 +818,9 @@ app.get("/api/debug/stripe", (req, res) => {
   res.json({
     ok: true,
     mode: isLive ? "live" : "test",
-    hasSecret: !!process.env.STRIPE_SECRET_KEY,
+    hasSecret: !!billingEnv.stripeSecretKey,
     prices,
+    isProd: billingEnv.isProd,
   });
 });
 

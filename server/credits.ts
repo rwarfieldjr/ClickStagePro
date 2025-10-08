@@ -1,9 +1,10 @@
 import Stripe from "stripe";
 import { pool } from "./db";
 import { storage } from "./storage";
+import { billingEnv } from "../src/config/billingEnv";
 
-const stripe = process.env.STRIPE_SECRET_KEY 
-  ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2024-06-20" as any })
+const stripe = billingEnv.stripeSecretKey
+  ? new Stripe(billingEnv.stripeSecretKey, { apiVersion: "2024-06-20" as any })
   : null;
 
 // ---------- Pack Rules for Credit Bundles ----------
@@ -29,21 +30,18 @@ export const PACK_RULES: Record<string, PackRule> = {
 type Bundle = { priceId: string; label: string; credits: number; months: number; autoExtend?: boolean; graceDays?: number };
 
 export function listBundles(): Bundle[] {
-  // Use APP_ENV to determine production vs test mode (not NODE_ENV)
-  const isProduction = process.env.APP_ENV === 'production';
-  const prefix = isProduction ? '' : 'TESTING_';
-  
+  // Use billingEnv for correct TEST/PRODUCTION price IDs
   const map = [
-    { envKey: `${prefix}PRICE_SINGLE`, packKey: "SINGLE" },
-    { envKey: `${prefix}PRICE_5`, packKey: "5" },
-    { envKey: `${prefix}PRICE_10`, packKey: "10" },
-    { envKey: `${prefix}PRICE_20`, packKey: "20" },
-    { envKey: `${prefix}PRICE_50`, packKey: "50" },
-    { envKey: `${prefix}PRICE_100`, packKey: "100" },
+    { priceId: billingEnv.prices.SINGLE, packKey: "SINGLE" },
+    { priceId: billingEnv.prices.P5, packKey: "5" },
+    { priceId: billingEnv.prices.P10, packKey: "10" },
+    { priceId: billingEnv.prices.P20, packKey: "20" },
+    { priceId: billingEnv.prices.P50, packKey: "50" },
+    { priceId: billingEnv.prices.P100, packKey: "100" },
   ] as const;
   const out: Bundle[] = [];
   for (const m of map) {
-    const priceId = process.env[m.envKey];
+    const priceId = m.priceId;
     const pack = PACK_RULES[m.packKey];
     if (priceId && pack) {
       out.push({ 
