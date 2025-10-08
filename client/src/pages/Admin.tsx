@@ -358,6 +358,16 @@ function RequestDetails({ request }: { request: StagingRequest }) {
   const generateDownloadUrls = async () => {
     if (!request.propertyImages || request.propertyImages.length === 0) return;
     
+    const apiKey = localStorage.getItem("admin_api_key");
+    if (!apiKey) {
+      toast({
+        title: 'Error',
+        description: 'Admin API key not found',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
     setLoadingUrls(true);
     const urls: Record<string, string> = {};
     
@@ -365,13 +375,23 @@ function RequestDetails({ request }: { request: StagingRequest }) {
       for (const key of request.propertyImages) {
         const response = await fetch(`/api/r2/download-url`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'X-API-Key': apiKey
+          },
           body: JSON.stringify({ key })
         });
         
         if (response.ok) {
           const data = await response.json();
           urls[key] = data.url;
+        } else {
+          console.error(`Failed to get download URL for ${key}:`, response.status);
+          toast({
+            title: 'Error',
+            description: `Failed to generate download URL for photo: ${response.statusText}`,
+            variant: 'destructive'
+          });
         }
       }
       setDownloadUrls(urls);
