@@ -207,8 +207,20 @@ export default function FileManager({ hideAuthPrompt = false }: { hideAuthPrompt
             <div className="p-2 text-xs">
               <div className="truncate" title={file.name}>{file.name}</div>
               <div className="text-gray-500">{(file.size/1024).toFixed(1)} KB · {new Date(file.lastModified).toLocaleString()}</div>
-              <div className="mt-2 flex gap-2">
+              <div className="mt-2 flex flex-wrap gap-2">
                 <button className="px-2 py-1 rounded bg-gray-100" onClick={()=>open(file)}>Open</button>
+                <button className="px-2 py-1 rounded bg-gray-100" onClick={async()=>{
+                  const r = await j<{url:string}>(`/api/files/url?key=${encodeURIComponent(file.key)}&format=jpg`);
+                  window.open(r.url, '_blank');
+                }}>JPG</button>
+                <button className="px-2 py-1 rounded bg-gray-100" onClick={async()=>{
+                  const r = await j<{url:string}>(`/api/files/url?key=${encodeURIComponent(file.key)}&format=png`);
+                  window.open(r.url, '_blank');
+                }}>PNG</button>
+                <button className="px-2 py-1 rounded bg-gray-100" onClick={async()=>{
+                  const r = await j<{url:string}>(`/api/files/url?key=${encodeURIComponent(file.key)}&format=webp`);
+                  window.open(r.url, '_blank');
+                }}>WebP</button>
                 {/* Move to parent folder or root */}
                 {path && (
                   <button

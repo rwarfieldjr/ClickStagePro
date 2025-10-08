@@ -1781,6 +1781,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Generate a temporary download URL for a file; supports optional format conversion
+  // Usage: GET /api/files/url?key=<r2key>&format=jpg|png|webp
+  app.get("/api/files/url", isAuthenticated, async (req: any, res) => {
+    try {
+      const { key, format } = req.query as { key?: string; format?: string };
+      if (!key) return res.status(400).json({ error: "key required" });
+
+      // Access control: ensure the key belongs to the requesting user
+      const userId = req.user.id;
+      if (!key.startsWith(userId + "/")) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+
+      // If no format conversion requested, issue direct GET signed URL
+      if (!format) {
+        const cmd = new GetObjectCommand({ Bucket: R2_BUCKET, Key: key });
+        const url = await getSignedUrl(s3, cmd, { expiresIn: 900 });
+        return res.json({ url });
+      }
+
+      // For conversion, stream from R2 and transcode server-side using sharp
+      // NOTE: This path reads then responds inline with a one-time URL to the converted asset in R2
+      const srcCmd = new GetObjectCommand({ Bucket: R2_BUCKET, Key: key });
+      const obj = await s3.send(srcCmd);
+      // @ts-ignore: Body is a stream
+      const bodyStream = obj.Body as NodeJS.ReadableStream;
+      const sharp = (await import('sharp')).default;
+      const image = sharp();
+      bodyStream.pipe(image);
+
+      let pipeline = image;
+      const target = String(format).toLowerCase();
+      if (target === 'jpg' || target === 'jpeg') pipeline = image.jpeg({ quality: 90 });
+      else if (target === 'png') pipeline = image.png();
+      else if (target === 'webp') pipeline = image.webp({ quality: 90 });
+      else return res.status(400).json({ error: "Unsupported format" });
+
+      const buffer = await pipeline.toBuffer();
+      const outKey = key.replace(/\.[^.]+$/, '') + `.${target}`;
+      const putCmd = new PutObjectCommand({ Bucket: R2_BUCKET, Key: outKey, Body: buffer, ContentType: `image/${target}` });
+      await s3.send(putCmd);
+      const url = await getSignedUrl(s3, new GetObjectCommand({ Bucket: R2_BUCKET, Key: outKey }), { expiresIn: 900 });
+      return res.json({ url });
+    } catch (e: any) {
+      console.error('file url error:', e.message);
+      return res.status(500).json({ error: 'Failed to generate file URL' });
+    }
+  });
+
   // Signed upload into a folder
   app.post("/api/manager/sign-upload", gate("ENABLE_R2"), isAuthenticated, async (req: any, res) => {
     try {
