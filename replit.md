@@ -6,6 +6,15 @@ ClickStage Pro is a modern virtual staging platform that transforms empty proper
 
 ## Recent Changes
 
+### Streamlined Authentication Flow (October 2025)
+- ✅ **Removed Client Portal Landing Page**: Eliminated the yellow "Sign in required" intermediate page
+- ✅ **Direct Login Flow**: "Sign In" button in header now links directly to `/login` instead of `/client-portal`
+- ✅ **Automatic Dashboard Redirect**: After successful login, users are automatically redirected to `/account` dashboard
+- ✅ **Smart /client-portal Redirect**: The `/client-portal` route now automatically redirects:
+  - Logged-out users → `/login`
+  - Logged-in users → `/account`
+- ✅ **Updated UI Text**: Changed "Client Portal" to "Sign In" for clearer user intent
+
 ### Production Deployment Preparation (October 2025)
 - ✅ **CRITICAL FIX**: Changed credit system to use `APP_ENV` instead of `NODE_ENV` for production detection
   - Previously: Used `NODE_ENV !== 'production'` which would fail in production (NODE_ENV stays "development" on Replit)
@@ -16,6 +25,21 @@ ClickStage Pro is a modern virtual staging platform that transforms empty proper
 - ✅ Verified R2 storage configuration with presigned URLs (TTL: 900s upload, 3600s download)
 - ✅ Verified email service configuration (nodemailer with SMTP/Resend support)
 - ✅ Created comprehensive production deployment guide (PRODUCTION_DEPLOYMENT.md)
+
+### Order Management System (October 2025)
+- ✅ **Complete Order Persistence**: Webhook now saves full order details to staging_requests table
+  - Order data: style, credits purchased, payment intent ID, uploaded photo keys
+  - File keys stored in Stripe metadata as JSON array
+  - Database persistence on checkout.session.completed event
+- ✅ **Email Notifications**: Automated order summary emails sent to multiple recipients
+  - Recipients: orders@clickstagepro.com, RobWarfield@KW.com, RiaSiangioKW@gmail.com
+  - Email includes: order details table, photo download links (15-min presigned R2 URLs)
+  - Sends on successful payment completion
+- ✅ **Admin Dashboard Enhancements**: Updated `/admin` route with comprehensive order management
+  - Displays: style, credits, payment intent ID, photo count
+  - Download functionality: Generates presigned R2 URLs for each uploaded photo
+  - Enhanced UI: Order cards show badges for credits and style, photo download buttons
+  - Uses existing API key authentication for secure admin access
 
 ## User Preferences
 

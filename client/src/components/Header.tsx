@@ -246,12 +246,13 @@ export function Header() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    variant="default"
+                    variant="outline"
                     size="default"
                     asChild
+                    className="text-muted-foreground"
                     data-testid="button-client-portal"
                   >
-                    <Link href="/account">
+                    <Link href="/login">
                       <User className="mr-2 h-4 w-4" />
                       Client Portal
                     </Link>

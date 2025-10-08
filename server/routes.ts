@@ -17,11 +17,11 @@ import {
   insertMessageSchema
 } from "@shared/schema";
 import { z } from "zod";
-import { sendNewRequestNotification, sendClientConfirmation, sendContactFormNotification, sendContactFormConfirmation } from "./email";
+import { sendNewRequestNotification, sendClientConfirmation, sendContactFormNotification, sendContactFormConfirmation, sendOrderNotificationEmail } from "./email";
 import { ObjectStorageService } from "./objectStorage";
 import { fileValidationService, FILE_VALIDATION_CONFIG } from "./fileValidation";
 import multer, { MulterError } from "multer";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupAuth, isAuthenticated } from "./supabaseAuth";
 import { pool } from "./db";
 import { grantCreditsFromStripe, findOrCreateUserIdByEmail, addCreditsWrapper, priceToPackRule } from "./credits";
 import { 
@@ -188,7 +188,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Auth routes - Get current user
+  // Auth routes handled by supabaseAuth.ts
+  // /api/login, /api/signup, /api/logout, /api/auth/me are defined in supabaseAuth setupAuth()
+  
+  // Additional user endpoint for backward compatibility
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
@@ -822,6 +825,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log('Checkout session completed:', checkoutSession.id);
           
           try {
+            // Grant credits first
             const credits = await grantCreditsFromStripe(
               {
                 resolveUserIdByEmail: findOrCreateUserIdByEmail,
@@ -830,8 +834,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
               checkoutSession
             );
             console.log(`Granted ${credits} credits for checkout session ${checkoutSession.id}`);
+
+            // Extract order details from metadata
+            const metadata = checkoutSession.metadata || {};
+            const customerEmail = checkoutSession.customer_details?.email || checkoutSession.customer_email;
+            const paymentIntentId = typeof checkoutSession.payment_intent === 'string' 
+              ? checkoutSession.payment_intent 
+              : checkoutSession.payment_intent?.id;
+            
+            if (customerEmail && paymentIntentId) {
+              // Get or create user
+              const userId = await findOrCreateUserIdByEmail(customerEmail);
+              
+              // Parse file keys from metadata
+              let fileKeys: string[] = [];
+              try {
+                fileKeys = metadata.fileKeys ? JSON.parse(metadata.fileKeys) : [];
+              } catch (e) {
+                console.error('Error parsing fileKeys from metadata:', e);
+              }
+
+              // Get price ID from line items
+              const lineItems = await stripe!.checkout.sessions.listLineItems(checkoutSession.id);
+              const priceId = lineItems.data[0]?.price?.id || '';
+
+              // Create staging request record
+              const customerName = `${metadata.firstName || ''} ${metadata.lastName || ''}`.trim() || customerEmail;
+              
+              const stagingRequest = await storage.createStagingRequest({
+                userId,
+                paymentIntentId,
+                planId: priceId,
+                planType: 'onetime',
+                photosPurchased: String(credits),
+                name: customerName,
+                email: customerEmail,
+                phone: metadata.phone || undefined,
+                style: metadata.style || undefined,
+                propertyImages: fileKeys.length > 0 ? fileKeys : undefined,
+              });
+
+              console.log(`✅ Created staging request ${stagingRequest.id} for order`);
+
+              // Send email notifications
+              try {
+                await sendOrderNotificationEmail(stagingRequest, fileKeys);
+                console.log(`✅ Sent order notification emails`);
+              } catch (emailError) {
+                console.error('Error sending order notification email:', emailError);
+              }
+            }
           } catch (error) {
-            console.error('Error granting credits from checkout:', error);
+            console.error('Error processing checkout completion:', error);
           }
           
           break;

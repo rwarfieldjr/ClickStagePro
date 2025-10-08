@@ -35,18 +35,19 @@ export const billingEnv = {
   ),
 
   // Price IDs (live/test)
+  // In test mode, all bundles use the same TEST_PRICE_1 for simplified e2e testing
   prices: {
-    SINGLE:  need(isProd ? "PRICE_SINGLE"  : "TESTING_PRICE_SINGLE",
-                  isProd ? process.env.PRICE_SINGLE  : process.env.TESTING_PRICE_SINGLE),
-    P5:      need(isProd ? "PRICE_5"       : "TESTING_PRICE_5",
-                  isProd ? process.env.PRICE_5       : process.env.TESTING_PRICE_5),
-    P10:     need(isProd ? "PRICE_10"      : "TESTING_PRICE_10",
-                  isProd ? process.env.PRICE_10      : process.env.TESTING_PRICE_10),
-    P20:     need(isProd ? "PRICE_20"      : "TESTING_PRICE_20",
-                  isProd ? process.env.PRICE_20      : process.env.TESTING_PRICE_20),
-    P50:     need(isProd ? "PRICE_50"      : "TESTING_PRICE_50",
-                  isProd ? process.env.PRICE_50      : process.env.TESTING_PRICE_50),
-    P100:    need(isProd ? "PRICE_100"     : "TESTING_PRICE_100",
-                  isProd ? process.env.PRICE_100     : process.env.TESTING_PRICE_100),
+    SINGLE:  isProd ? need("PRICE_SINGLE", process.env.PRICE_SINGLE) 
+                    : need("TEST_PRICE_1", process.env.TEST_PRICE_1),
+    P5:      isProd ? need("PRICE_5", process.env.PRICE_5) 
+                    : need("TEST_PRICE_1", process.env.TEST_PRICE_1),
+    P10:     isProd ? need("PRICE_10", process.env.PRICE_10) 
+                    : need("TEST_PRICE_1", process.env.TEST_PRICE_1),
+    P20:     isProd ? need("PRICE_20", process.env.PRICE_20) 
+                    : need("TEST_PRICE_1", process.env.TEST_PRICE_1),
+    P50:     isProd ? need("PRICE_50", process.env.PRICE_50) 
+                    : need("TEST_PRICE_1", process.env.TEST_PRICE_1),
+    P100:    isProd ? need("PRICE_100", process.env.PRICE_100) 
+                    : need("TEST_PRICE_1", process.env.TEST_PRICE_1),
   },
 } as const;

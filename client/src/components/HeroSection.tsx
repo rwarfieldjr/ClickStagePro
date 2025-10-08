@@ -67,7 +67,7 @@ export function HeroSection() {
               className="text-lg px-8 py-3 text-white border-white/30 bg-white/10 backdrop-blur-sm hover:bg-white/20"
               data-testid="button-client-portal-hero"
             >
-              <Link href="/client-portal">
+              <Link href="/login">
                 Client Portal
               </Link>
             </Button>
