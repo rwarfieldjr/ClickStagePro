@@ -1832,6 +1832,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create a ZIP archive of selected files and stream to client
+  app.post("/api/files/zip", isAuthenticated, async (req: any, res) => {
+    try {
+      const { keys } = req.body || {} as { keys?: string[] };
+      if (!Array.isArray(keys) || keys.length === 0) {
+        return res.status(400).json({ error: "keys[] required" });
+      }
+      const userId = req.user.id;
+      for (const k of keys) {
+        if (typeof k !== 'string' || !k.startsWith(userId + "/")) {
+          return res.status(403).json({ error: "Forbidden" });
+        }
+      }
+
+      const { default: archiver } = await import('archiver');
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', 'attachment; filename="photos.zip"');
+
+      const archive = archiver('zip', { zlib: { level: 9 } });
+      archive.on('error', (err: any) => { throw err; });
+      archive.pipe(res);
+
+      for (const key of keys) {
+        const obj = await s3.send(new GetObjectCommand({ Bucket: R2_BUCKET, Key: key }));
+        // @ts-ignore
+        const stream: NodeJS.ReadableStream = obj.Body;
+        const name = key.split('/').pop() || 'file';
+        archive.append(stream, { name });
+      }
+      await archive.finalize();
+    } catch (e: any) {
+      console.error('zip error:', e.message);
+      if (!res.headersSent) res.status(500).json({ error: 'Failed to create ZIP' });
+    }
+  });
+
   // Signed upload into a folder
   app.post("/api/manager/sign-upload", gate("ENABLE_R2"), isAuthenticated, async (req: any, res) => {
     try {
