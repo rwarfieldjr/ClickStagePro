@@ -254,7 +254,7 @@ export function Header() {
                   >
                     <Link href="/login">
                       <User className="mr-2 h-4 w-4" />
-                      Sign In
+                      Client Portal
                     </Link>
                   </Button>
                 </TooltipTrigger>

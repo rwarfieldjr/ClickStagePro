@@ -68,7 +68,7 @@ export function HeroSection() {
               data-testid="button-client-portal-hero"
             >
               <Link href="/login">
-                Sign In
+                Client Portal
               </Link>
             </Button>
           </div>
