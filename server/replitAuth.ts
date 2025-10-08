@@ -8,7 +8,8 @@ import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
 
-if (!process.env.REPLIT_DOMAINS) {
+// Allow local/dev auth without Replit domains
+if (!process.env.REPLIT_DOMAINS && process.env.ENABLE_DEV_AUTH !== "1") {
   throw new Error("Environment variable REPLIT_DOMAINS not provided");
 }
 
@@ -38,7 +39,8 @@ export function getSession() {
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: true,
+      // Only mark as secure in production so local dev over HTTP works
+      secure: process.env.NODE_ENV === "production",
       maxAge: sessionTtl,
     },
   });
@@ -57,7 +59,8 @@ function updateUserSession(
 async function upsertUser(
   claims: any,
 ) {
-  await storage.upsertUser({
+  // Return the DB user so we can attach a stable user id to the session
+  return await storage.upsertUser({
     replitId: claims["sub"],
     email: claims["email"],
     firstName: claims["first_name"],
@@ -78,9 +81,15 @@ export async function setupAuth(app: Express) {
     tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,
     verified: passport.AuthenticateCallback
   ) => {
-    const user = {};
+    const claims = tokens.claims();
+    const dbUser = await upsertUser(claims);
+
+    // Attach a normalized user object with id/email while preserving token data
+    const user: any = {
+      id: dbUser.id,
+      email: dbUser.email,
+    };
     updateUserSession(user, tokens);
-    await upsertUser(tokens.claims());
     verified(null, user);
   };
 

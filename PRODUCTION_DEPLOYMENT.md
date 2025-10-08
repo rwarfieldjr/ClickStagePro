@@ -1,4 +1,49 @@
 # ClickStagePro Production Deployment Guide
+## Local Development Quickstart
+
+1) Environment variables (use a `.env` or Replit Secrets):
+
+```bash
+# Stripe
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+VITE_STRIPE_PUBLIC_KEY=pk_test_...
+
+# App
+APP_URL=http://localhost:5000
+DATABASE_URL=postgres://user:pass@host:5432/db
+SESSION_SECRET=dev-secret
+ENABLE_DEV_AUTH=1 # optional dev shim
+```
+
+2) Install deps and run migrations:
+
+```bash
+npm ci
+npm run db:generate
+npm run db:migrate
+```
+
+3) Run and verify health routes:
+
+```bash
+npm run dev
+# then open http://localhost:5000/api/health and /dev/health
+```
+
+4) Stripe CLI for local webhooks:
+
+```bash
+stripe listen --forward-to localhost:5000/api/billing/webhook
+```
+
+5) Billing flow smoke test:
+
+- POST /api/billing/create-checkout-session with `{ priceId }` (authenticated)
+- POST /api/billing/create-portal-session (authenticated)
+- Complete test checkout → `/payment-success` then `/order-completion`
+- Webhooks update `subscriptions` and credits on payment success
+
 
 ## 🚨 CRITICAL FIX APPLIED
 
