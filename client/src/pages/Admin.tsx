@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useQuery } from "@tanstack/react-query"
 import { useToast } from "@/hooks/use-toast"
-import { Eye, Trash2, Mail, Phone, MapPin, Calendar, Shield } from "lucide-react"
+import { Eye, Trash2, Mail, Phone, MapPin, Calendar, Shield, Download, CreditCard, Palette } from "lucide-react"
 import type { StagingRequest } from "@shared/schema"
 
 export default function Admin() {
@@ -249,6 +249,11 @@ export default function Admin() {
 }
 
 function RequestCard({ request, onDelete }: { request: StagingRequest; onDelete: () => void }) {
+  const formatStyle = (style: string | null) => {
+    if (!style) return 'Not specified';
+    return style.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  };
+
   return (
     <Card className="hover-elevate">
       <CardHeader>
@@ -256,9 +261,18 @@ function RequestCard({ request, onDelete }: { request: StagingRequest; onDelete:
           <div className="space-y-1">
             <CardTitle className="flex items-center gap-2">
               {request.name}
-              <Badge variant="secondary" className="text-xs">
-                {request.propertyType}
-              </Badge>
+              {request.photosPurchased && (
+                <Badge variant="default" className="text-xs">
+                  <CreditCard className="w-3 h-3 mr-1" />
+                  {request.photosPurchased} credits
+                </Badge>
+              )}
+              {request.style && (
+                <Badge variant="secondary" className="text-xs">
+                  <Palette className="w-3 h-3 mr-1" />
+                  {formatStyle(request.style)}
+                </Badge>
+              )}
             </CardTitle>
             <CardDescription className="flex items-center gap-4">
               <span className="flex items-center gap-1">
@@ -280,11 +294,11 @@ function RequestCard({ request, onDelete }: { request: StagingRequest; onDelete:
                   <Eye className="w-4 h-4" />
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl">
+              <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle>Staging Request Details</DialogTitle>
+                  <DialogTitle>Order Details</DialogTitle>
                   <DialogDescription>
-                    Request from {request.name}
+                    Order from {request.name}
                   </DialogDescription>
                 </DialogHeader>
                 <RequestDetails request={request} />
@@ -303,10 +317,17 @@ function RequestCard({ request, onDelete }: { request: StagingRequest; onDelete:
       </CardHeader>
       <CardContent>
         <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <MapPin className="w-3 h-3" />
-            {request.rooms} rooms • {request.propertyType}
-          </span>
+          <div className="flex items-center gap-4">
+            {request.propertyImages && request.propertyImages.length > 0 && (
+              <span>{request.propertyImages.length} photos uploaded</span>
+            )}
+            {request.propertyType && request.rooms && (
+              <span className="flex items-center gap-1">
+                <MapPin className="w-3 h-3" />
+                {request.rooms} rooms • {request.propertyType}
+              </span>
+            )}
+          </div>
           {request.createdAt && (
             <span className="flex items-center gap-1">
               <Calendar className="w-3 h-3" />
@@ -325,38 +346,149 @@ function RequestCard({ request, onDelete }: { request: StagingRequest; onDelete:
 }
 
 function RequestDetails({ request }: { request: StagingRequest }) {
+  const [downloadUrls, setDownloadUrls] = useState<Record<string, string>>({});
+  const [loadingUrls, setLoadingUrls] = useState(false);
+  const { toast } = useToast();
+
+  const formatStyle = (style: string | null) => {
+    if (!style) return 'Not specified';
+    return style.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  };
+
+  const generateDownloadUrls = async () => {
+    if (!request.propertyImages || request.propertyImages.length === 0) return;
+    
+    setLoadingUrls(true);
+    const urls: Record<string, string> = {};
+    
+    try {
+      for (const key of request.propertyImages) {
+        const response = await fetch(`/api/r2/download-url`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          urls[key] = data.url;
+        }
+      }
+      setDownloadUrls(urls);
+    } catch (error) {
+      console.error('Error generating download URLs:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to generate download links',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoadingUrls(false);
+    }
+  };
+
+  useEffect(() => {
+    if (request.propertyImages && request.propertyImages.length > 0) {
+      generateDownloadUrls();
+    }
+  }, [request.id]);
+
+  const downloadPhoto = async (key: string, index: number) => {
+    const url = downloadUrls[key];
+    if (!url) {
+      toast({
+        title: 'Error',
+        description: 'Download URL not available',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `photo-${index + 1}-${key.split('/').pop()}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+      
+      toast({
+        title: 'Success',
+        description: `Photo ${index + 1} downloaded successfully`
+      });
+    } catch (error) {
+      console.error('Download error:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to download photo',
+        variant: 'destructive'
+      });
+    }
+  };
+
   return (
     <div className="space-y-4">
+      {/* Order Information */}
+      <div className="bg-primary/5 p-4 rounded-lg space-y-2">
+        <h4 className="font-semibold text-sm">Order Information</h4>
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <span className="text-muted-foreground">Order ID:</span>
+            <p className="font-mono text-xs mt-1">{request.id}</p>
+          </div>
+          <div>
+            <span className="text-muted-foreground">Payment Intent:</span>
+            <p className="font-mono text-xs mt-1">{request.paymentIntentId}</p>
+          </div>
+          <div>
+            <span className="text-muted-foreground">Credits Purchased:</span>
+            <p className="font-semibold mt-1">{request.photosPurchased}</p>
+          </div>
+          <div>
+            <span className="text-muted-foreground">Staging Style:</span>
+            <p className="mt-1">{formatStyle(request.style)}</p>
+          </div>
+          <div>
+            <span className="text-muted-foreground">Order Date:</span>
+            <p className="mt-1">{request.createdAt ? new Date(request.createdAt).toLocaleString() : 'N/A'}</p>
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 gap-4">
         <div>
           <h4 className="font-semibold text-sm text-muted-foreground mb-1">Contact Information</h4>
           <div className="space-y-1">
             <p className="flex items-center gap-2">
               <Mail className="w-4 h-4 text-muted-foreground" />
-              {request.email}
+              <a href={`mailto:${request.email}`} className="text-primary hover:underline">
+                {request.email}
+              </a>
             </p>
             {request.phone && (
               <p className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-muted-foreground" />
-                {request.phone}
+                <a href={`tel:${request.phone}`} className="text-primary hover:underline">
+                  {request.phone}
+                </a>
               </p>
             )}
           </div>
         </div>
         
-        <div>
-          <h4 className="font-semibold text-sm text-muted-foreground mb-1">Property Details</h4>
-          <div className="space-y-1">
-            <p><span className="text-muted-foreground">Type:</span> {request.propertyType}</p>
-            <p><span className="text-muted-foreground">Rooms:</span> {request.rooms}</p>
-            {request.createdAt && (
-              <p className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-muted-foreground" />
-                {new Date(request.createdAt).toLocaleString()}
-              </p>
-            )}
+        {(request.propertyType || request.rooms) && (
+          <div>
+            <h4 className="font-semibold text-sm text-muted-foreground mb-1">Property Details</h4>
+            <div className="space-y-1">
+              {request.propertyType && <p><span className="text-muted-foreground">Type:</span> {request.propertyType}</p>}
+              {request.rooms && <p><span className="text-muted-foreground">Rooms:</span> {request.rooms}</p>}
+            </div>
           </div>
-        </div>
+        )}
       </div>
       
       {request.message && (
@@ -371,26 +503,43 @@ function RequestDetails({ request }: { request: StagingRequest }) {
       {request.propertyImages && request.propertyImages.length > 0 && (
         <div>
           <h4 className="font-semibold text-sm text-muted-foreground mb-2">
-            Property Photos ({request.propertyImages.length})
+            📸 Uploaded Photos ({request.propertyImages.length})
           </h4>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-            {request.propertyImages.map((imagePath, index) => (
-              <div key={index} className="aspect-square bg-muted rounded-lg overflow-hidden">
-                <img 
-                  src={imagePath} 
-                  alt={`Property photo ${index + 1}`}
-                  className="w-full h-full object-cover hover-elevate cursor-pointer"
-                  onClick={() => window.open(imagePath, '_blank')}
-                />
-              </div>
-            ))}
+          <div className="space-y-2">
+            {request.propertyImages.map((key, index) => {
+              const filename = key.split('/').pop() || key;
+              const hasUrl = !!downloadUrls[key];
+              
+              return (
+                <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-primary text-primary-foreground rounded px-2 py-1 text-xs font-semibold">
+                      {index + 1}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">{filename}</p>
+                      <p className="text-xs text-muted-foreground font-mono">{key}</p>
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => downloadPhoto(key, index)}
+                    disabled={loadingUrls || !hasUrl}
+                    data-testid={`button-download-photo-${index}`}
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    {loadingUrls ? 'Loading...' : 'Download'}
+                  </Button>
+                </div>
+              );
+            })}
           </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            💡 Download links are valid for 15 minutes
+          </p>
         </div>
       )}
-      
-      <div className="pt-4 border-t">
-        <p className="text-xs text-muted-foreground">Request ID: {request.id}</p>
-      </div>
     </div>
   )
 }
