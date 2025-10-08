@@ -136,7 +136,7 @@ function requireAdminAuth(req: Request, res: Response, next: NextFunction) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Setup Replit Auth middleware and routes
+  // Setup Supabase Auth middleware and routes
   await setupAuth(app);
 
   // TEMP: visit this while logged in to see what Replit provides
