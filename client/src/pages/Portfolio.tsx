@@ -5,30 +5,37 @@ import { Link } from "wouter"
 import { ArrowRight, Home, TrendingUp, Users, Award, CheckCircle, DollarSign } from "lucide-react"
 import { Helmet } from "react-helmet-async"
 
-// Use placeholders in CI if attached assets not available
-import beforeBedroom from "@/assets/styles/placeholder.png"
-import afterBedroom from "@/assets/styles/placeholder.png"
+// Import the provided bedroom images
+import beforeBedroom from "@assets/28_dsc_2541_1758204032969.jpg"
+import afterBedroom from "@assets/Quick_Staging___Sep_17__2025__01_53_PM_image_5_edited (1)_1758204027035.png"
 
-import beforeLivingRoom from "@/assets/styles/placeholder.png"
-import afterLivingRoom from "@/assets/styles/placeholder.png"
+// Import the provided living room images
+import beforeLivingRoom from "@assets/14-Bruce St-014_1758205389126.jpg"
+import afterLivingRoom from "@assets/Quick_Staging___Sep_18__2025__10_13_AM_image_1_edited (2)_1758205381820.png"
 
-import beforeDayToDusk from "@/assets/styles/placeholder.png"
-import afterDayToDusk from "@/assets/styles/placeholder.png"
+// Import the provided Day to Dusk transformation images
+import beforeDayToDusk from "@assets/03-Jessica Mines Wy-003_1758206132311.jpg"
+import afterDayToDusk from "@assets/Quick_Staging___Sep_18__2025__10_30_AM_image_1_edited_1758206122718.png"
 
-import beforeDeClutter from "@/assets/styles/placeholder.png"
-import afterDeClutter from "@/assets/styles/placeholder.png"
+// Import the provided De-Clutter transformation images
+import beforeDeClutter from "@assets/409 Iron Bridge Way Simpsonville SC-27_1758206660508.jpg"
+import afterDeClutter from "@assets/Quick_Staging___Sep_18__2025__10_30_AM_image_1_edited (1)_1758206655289.png"
 
-import beforeExteriorRenovation from "@/assets/styles/placeholder.png"
-import afterExteriorRenovation from "@/assets/styles/placeholder.png"
+// Import the provided Exterior Renovation transformation images
+import beforeExteriorRenovation from "@assets/409 Iron Bridge Way Simpsonville SC-1_1758230178978.jpg"
+import afterExteriorRenovation from "@assets/Quick_Staging___Sep_18__2025__10_30_AM_image_1_edited (2)_1758230186962.png"
 
-import beforeCommercialSpace from "@/assets/styles/placeholder.png"
-import afterCommercialSpace from "@/assets/styles/placeholder.png"
+// Import the provided Commercial Space transformation images
+import beforeCommercialSpace from "@assets/pexels-pixabay-257636_1758290709054.jpg"
+import afterCommercialSpace from "@assets/Quick_Staging___Sep_19__2025__10_03_AM_image_1_edited_1758290703287.png"
 
-import beforeApartmentStaging from "@/assets/styles/placeholder.png"
-import afterApartmentStaging from "@/assets/styles/placeholder.png"
+// Import the provided Apartment Staging transformation images
+import beforeApartmentStaging from "@assets/point3d-commercial-imaging-ltd-nQlVMCHPysY-unsplash_1758295494505.jpg"
+import afterApartmentStaging from "@assets/Quick_Staging___Sep_19__2025__11_23_AM_image_1_edited_1758295487326.png"
 
-import renovationOption1 from "@/assets/styles/placeholder.png"
-import renovationOption2 from "@/assets/styles/placeholder.png"
+// Import Renovation Inspiration images
+import renovationOption1 from "@assets/Quick_Staging___Oct_2__2025__01_45_PM_image_1_edited_1759516066367.png"
+import renovationOption2 from "@assets/Quick_Staging___Oct_2__2025__09_53_AM_image_1_edited_1759516072948.png"
 
 export default function Portfolio() {
   const transformationImpacts = [

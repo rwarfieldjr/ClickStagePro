@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { ArrowRight, Play, Sparkles, CheckCircle, Clock } from "lucide-react"
 import { Link } from "wouter"
-import heroImage from "@/assets/styles/placeholder.png"
+import heroImage from "@assets/generated_images/Virtual_staging_before_after_comparison_c0b36504.png"
 
 export function HeroSection() {
   return (

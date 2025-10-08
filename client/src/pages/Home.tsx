@@ -8,14 +8,13 @@ import { Link } from "wouter"
 import { HomeIcon, Camera, Palette, ArrowRight, CheckCircle, Clock, Users, Award } from "lucide-react"
 
 // Import generated images
-// Fallback placeholders if generated assets are not present in CI
-import heroImage from "@/assets/styles/placeholder.png"
-import clientAvatar from "@/assets/styles/placeholder.png"
-import agentAvatar from "@/assets/styles/placeholder.png"
+import heroImage from "@assets/generated_images/Virtual_staging_before_after_comparison_c0b36504.png"
+import clientAvatar from "@assets/generated_images/Client_testimonial_headshot_2499fd21.png"
+import agentAvatar from "@assets/generated_images/Agent_testimonial_headshot_2d12ee28.png"
 
-// Use fallback placeholders if user-provided assets are not bundled
-import beforeImage from "@/assets/styles/placeholder.png"
-import afterImage from "@/assets/styles/placeholder.png"
+// Import user provided before/after images
+import beforeImage from "@assets/15_dsc_2496_1758131958804.jpg"
+import afterImage from "@assets/Quick_Staging___Sep_17__2025__01_53_PM_image_1_edited_1758131944518.png"
 
 export default function Home() {
   // TODO: Remove mock data when integrating with real services
