@@ -15,13 +15,35 @@ export default function Admin() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const { toast } = useToast()
   
-  // Check if API key is stored in localStorage
+  // Check if API key is stored in localStorage and auto-fill in development
   useEffect(() => {
     const storedKey = localStorage.getItem("admin_api_key")
     if (storedKey) {
       setApiKey(storedKey)
       setIsAuthenticated(true)
+      return
     }
+
+    // In development, auto-fill the API key for easier testing
+    const fetchDevApiKey = async () => {
+      try {
+        const response = await fetch("/api/dev/admin-key")
+        if (response.ok) {
+          const data = await response.json()
+          if (data.adminApiKey) {
+            setApiKey(data.adminApiKey)
+            // Automatically login for testing
+            localStorage.setItem("admin_api_key", data.adminApiKey)
+            setIsAuthenticated(true)
+          }
+        }
+      } catch (error) {
+        // Silently fail - not a critical error in production
+        console.log("Development API key not available")
+      }
+    }
+    
+    fetchDevApiKey()
   }, [])
 
   // Fetch staging requests with API key authentication

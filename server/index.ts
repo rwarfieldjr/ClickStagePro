@@ -834,6 +834,19 @@ app.get("/api/diag", (req, res) => {
   });
 });
 
+// Development-only endpoint to get admin API key for testing
+app.get("/api/dev/admin-key", (req, res) => {
+  // Only expose in development/test mode for testing purposes
+  if (process.env.NODE_ENV === "production" && billingEnv.isProd) {
+    return res.status(403).json({ error: "Not available in production" });
+  }
+  
+  res.json({
+    adminApiKey: process.env.ADMIN_API_KEY || "",
+    isDevelopment: true
+  });
+});
+
 // Validate Stripe session for thank you page
 app.get("/api/validate-session/:sessionId", async (req, res) => {
   try {
