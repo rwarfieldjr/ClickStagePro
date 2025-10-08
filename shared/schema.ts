@@ -258,20 +258,21 @@ export const insertStagingRequestSchema = createInsertSchema(stagingRequests).om
   name: z.string().min(1, "Name is required").max(100, "Name must be less than 100 characters").trim(),
   email: z.string().email("Invalid email format").max(255, "Email must be less than 255 characters").toLowerCase(),
   phone: z.string().max(20, "Phone must be less than 20 characters").optional().or(z.literal("")),
-  // Address validation
-  addressLine1: z.string().min(1, "Address is required").max(200, "Address must be less than 200 characters").trim(),
+  // Address validation (optional for simple order flow)
+  addressLine1: z.string().max(200, "Address must be less than 200 characters").trim().optional().or(z.literal("")),
   addressLine2: z.string().max(200, "Address line 2 must be less than 200 characters").optional().or(z.literal("")),
-  city: z.string().min(1, "City is required").max(100, "City must be less than 100 characters").trim(),
-  state: z.string().min(2, "State is required").max(50, "State must be less than 50 characters").trim(),
-  postalCode: z.string().min(1, "Postal code is required").max(20, "Postal code must be less than 20 characters").trim(),
-  // Property details
+  city: z.string().max(100, "City must be less than 100 characters").trim().optional().or(z.literal("")),
+  state: z.string().max(50, "State must be less than 50 characters").trim().optional().or(z.literal("")),
+  postalCode: z.string().max(20, "Postal code must be less than 20 characters").trim().optional().or(z.literal("")),
+  // Property details (optional for simple order flow)
   propertyType: z.enum(["residential", "commercial", "vacation_rental", "condo", "townhouse", "single_family"], {
     errorMap: () => ({ message: "Property type must be one of: residential, commercial, vacation_rental, condo, townhouse, single_family" })
-  }),
+  }).optional(),
   rooms: z.enum(["1", "2", "3", "4", "5", "6+"], {
     errorMap: () => ({ message: "Rooms must be one of: 1, 2, 3, 4, 5, 6+" })
-  }),
+  }).optional(),
   message: z.string().max(1000, "Message must be less than 1000 characters").optional().or(z.literal("")),
+  style: z.string().max(100, "Style must be less than 100 characters").optional(),
   propertyImages: z.array(z.string()).optional()
 });
 

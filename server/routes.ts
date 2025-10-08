@@ -715,7 +715,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Extract order details from metadata
             const metadata = checkoutSession.metadata || {};
             const customerEmail = checkoutSession.customer_details?.email || checkoutSession.customer_email;
-            const paymentIntentId = checkoutSession.payment_intent;
+            const paymentIntentId = typeof checkoutSession.payment_intent === 'string' 
+              ? checkoutSession.payment_intent 
+              : checkoutSession.payment_intent?.id;
             
             if (customerEmail && paymentIntentId) {
               // Get or create user
@@ -744,9 +746,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 photosPurchased: String(credits),
                 name: customerName,
                 email: customerEmail,
-                phone: metadata.phone || null,
-                style: metadata.style || null,
-                propertyImages: fileKeys.length > 0 ? fileKeys : null,
+                phone: metadata.phone || undefined,
+                style: metadata.style || undefined,
+                propertyImages: fileKeys.length > 0 ? fileKeys : undefined,
               });
 
               console.log(`✅ Created staging request ${stagingRequest.id} for order`);
