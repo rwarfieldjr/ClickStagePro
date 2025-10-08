@@ -42,15 +42,17 @@ export const stagingRequests = pgTable("staging_requests", {
   name: text("name").notNull(),
   email: text("email").notNull(),
   phone: text("phone"),
-  // Address fields
-  addressLine1: text("address_line_1").notNull(),
+  // Staging details
+  style: text("style"), // Selected staging style (e.g. 'modern-farmhouse')
+  // Address fields (optional for now)
+  addressLine1: text("address_line_1"),
   addressLine2: text("address_line_2"),
-  city: text("city").notNull(),
-  state: text("state").notNull(),
-  postalCode: text("postal_code").notNull(),
-  // Property details
-  propertyType: text("property_type").notNull(),
-  rooms: text("rooms").notNull(),
+  city: text("city"),
+  state: text("state"),
+  postalCode: text("postal_code"),
+  // Property details (optional for now)
+  propertyType: text("property_type"),
+  rooms: text("rooms"),
   message: text("message"),
   propertyImages: text("property_images").array(),
   createdAt: timestamp("created_at").defaultNow(),

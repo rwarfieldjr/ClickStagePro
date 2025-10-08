@@ -719,7 +719,7 @@ app.post("/api/create-checkout-session", async (req, res) => {
   try {
     const body = req.body || {};
     const bundle = Number(body.bundle || body.package || body.pkg || 0);
-    const { style, customer } = body;
+    const { style, customer, files } = body;
 
     if (!process.env.STRIPE_SECRET_KEY) {
       console.error("[CHECKOUT] Missing STRIPE_SECRET_KEY");
@@ -761,11 +761,16 @@ app.post("/api/create-checkout-session", async (req, res) => {
       bundle,
       priceId: priceId.substring(0, 20) + "...",
       mode: "live",
+      fileCount: files?.length || 0,
     });
 
     const base = process.env.PUBLIC_BASE_URL || `https://${req.headers.host}`;
     const successUrl = process.env.SUCCESS_URL || `${base}/success`;
     const cancelUrl = process.env.CANCEL_URL || `${base}/cancel`;
+
+    // Serialize file keys as JSON (Stripe metadata limit: 500 chars per value)
+    const fileKeys = files?.map((f: any) => f.key || '').filter(Boolean) || [];
+    const filesJson = JSON.stringify(fileKeys);
 
     const session = await stripe!.checkout.sessions.create({
       mode: "payment",
@@ -779,6 +784,7 @@ app.post("/api/create-checkout-session", async (req, res) => {
         firstName: customer?.firstName || "",
         lastName: customer?.lastName || "",
         phone: customer?.phone || "",
+        fileKeys: filesJson, // JSON array of storage keys
       },
     });
 

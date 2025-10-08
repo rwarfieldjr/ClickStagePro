@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import type { StagingRequest } from '@shared/schema';
+import { signGet } from './lib/r2';
 
 interface EmailConfig {
   host: string;
@@ -364,5 +365,196 @@ Transform empty properties into buyer's dreams
     }
   } catch (error) {
     console.error('Failed to send contact form confirmation email:', error);
+  }
+}
+
+export async function sendOrderNotificationEmail(order: StagingRequest, fileKeys: string[]) {
+  if (!isConfigured || !transporter) {
+    console.log('Email service not configured, skipping order notification');
+    return;
+  }
+
+  // Generate presigned download URLs for photos (valid for 1 hour)
+  const photoUrls: { key: string; url: string; filename: string }[] = [];
+  
+  for (const key of fileKeys) {
+    try {
+      const url = await signGet(key, 3600); // 1 hour expiry
+      const filename = key.split('/').pop() || key;
+      photoUrls.push({ key, url, filename });
+    } catch (error) {
+      console.error(`Error generating download URL for ${key}:`, error);
+    }
+  }
+
+  // Send to multiple recipients
+  const recipients = [
+    'orders@clickstagepro.com',
+    'RobWarfield@KW.com',
+    'RiaSiangioKW@gmail.com'
+  ].join(', ');
+
+  // Format style name for display
+  const styleName = order.style ? order.style.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : 'Not specified';
+
+  const htmlContent = `
+    <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto;">
+      <h2 style="color: #1a1a1a; border-bottom: 3px solid #3b82f6; padding-bottom: 10px;">
+        🎨 New Virtual Staging Order Received
+      </h2>
+      
+      <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+        <h3 style="color: #374151; margin-top: 0;">Order Details</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 8px 0; color: #6b7280; width: 180px;"><strong>Order ID:</strong></td>
+            <td style="padding: 8px 0; color: #1a1a1a;">${order.id}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; color: #6b7280;"><strong>Payment Intent:</strong></td>
+            <td style="padding: 8px 0; color: #1a1a1a; font-family: monospace; font-size: 12px;">${order.paymentIntentId}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; color: #6b7280;"><strong>Credits Purchased:</strong></td>
+            <td style="padding: 8px 0; color: #1a1a1a;">${order.photosPurchased}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; color: #6b7280;"><strong>Staging Style:</strong></td>
+            <td style="padding: 8px 0; color: #1a1a1a;">${styleName}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; color: #6b7280;"><strong>Date:</strong></td>
+            <td style="padding: 8px 0; color: #1a1a1a;">${new Date(order.createdAt ?? Date.now()).toLocaleDateString('en-US', { 
+              weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', 
+              hour: '2-digit', minute: '2-digit'
+            })}</td>
+          </tr>
+        </table>
+      </div>
+
+      <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+        <h3 style="color: #374151; margin-top: 0;">Customer Information</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 8px 0; color: #6b7280; width: 180px;"><strong>Name:</strong></td>
+            <td style="padding: 8px 0; color: #1a1a1a;">${order.name}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; color: #6b7280;"><strong>Email:</strong></td>
+            <td style="padding: 8px 0; color: #1a1a1a;"><a href="mailto:${order.email}" style="color: #3b82f6;">${order.email}</a></td>
+          </tr>
+          ${order.phone ? `
+          <tr>
+            <td style="padding: 8px 0; color: #6b7280;"><strong>Phone:</strong></td>
+            <td style="padding: 8px 0; color: #1a1a1a;"><a href="tel:${order.phone}" style="color: #3b82f6;">${order.phone}</a></td>
+          </tr>
+          ` : ''}
+        </table>
+      </div>
+
+      ${photoUrls.length > 0 ? `
+      <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+        <h3 style="color: #374151; margin-top: 0;">📸 Uploaded Photos (${photoUrls.length})</h3>
+        <p style="color: #6b7280; margin-bottom: 15px;">Click to download each photo:</p>
+        <ul style="list-style: none; padding: 0;">
+          ${photoUrls.map((photo, idx) => `
+            <li style="padding: 10px 0; border-bottom: 1px solid #e5e7eb;">
+              <a href="${photo.url}" 
+                 style="color: #3b82f6; text-decoration: none; display: flex; align-items: center;"
+                 download="${photo.filename}">
+                <span style="background: #3b82f6; color: white; border-radius: 4px; padding: 4px 8px; margin-right: 10px; font-size: 12px;">
+                  ${idx + 1}
+                </span>
+                ${photo.filename}
+                <span style="margin-left: 10px; color: #10b981;">⬇ Download</span>
+              </a>
+            </li>
+          `).join('')}
+        </ul>
+        <p style="color: #9ca3af; font-size: 12px; margin-top: 15px;">
+          ⏰ Download links expire in 1 hour for security
+        </p>
+      </div>
+      ` : ''}
+
+      <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #e5e7eb;">
+        <p style="color: #6b7280; font-size: 14px;">
+          <strong>Next Steps:</strong><br>
+          1. Download all uploaded photos<br>
+          2. Process the staging request<br>
+          3. Contact the customer within 24 hours
+        </p>
+      </div>
+
+      <div style="margin-top: 20px; padding: 15px; background-color: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 4px;">
+        <p style="margin: 0; color: #1e40af; font-size: 14px;">
+          <strong>💡 Tip:</strong> View all orders on the admin dashboard at 
+          <a href="https://admin.clickstagepro.com" style="color: #3b82f6;">admin.clickstagepro.com</a>
+        </p>
+      </div>
+
+      <p style="color: #9ca3af; font-size: 12px; margin-top: 30px; text-align: center;">
+        ClickStage Pro - Professional Virtual Staging Services<br>
+        Transform empty properties into buyer's dreams
+      </p>
+    </div>
+  `;
+
+  const textContent = `
+🎨 NEW VIRTUAL STAGING ORDER RECEIVED
+
+ORDER DETAILS
+=============
+Order ID: ${order.id}
+Payment Intent: ${order.paymentIntentId}
+Credits Purchased: ${order.photosPurchased}
+Staging Style: ${styleName}
+Date: ${new Date(order.createdAt ?? Date.now()).toLocaleString()}
+
+CUSTOMER INFORMATION
+===================
+Name: ${order.name}
+Email: ${order.email}
+${order.phone ? `Phone: ${order.phone}` : ''}
+
+${photoUrls.length > 0 ? `
+UPLOADED PHOTOS (${photoUrls.length})
+===================
+${photoUrls.map((photo, idx) => `${idx + 1}. ${photo.filename}\n   Download: ${photo.url}`).join('\n\n')}
+
+⏰ Download links expire in 1 hour for security
+` : ''}
+
+NEXT STEPS
+==========
+1. Download all uploaded photos
+2. Process the staging request
+3. Contact the customer within 24 hours
+
+View all orders at: https://admin.clickstagepro.com
+
+---
+ClickStage Pro - Professional Virtual Staging Services
+Transform empty properties into buyer's dreams
+  `;
+
+  try {
+    const info = await transporter.sendMail({
+      from: `"ClickStage Pro Orders" <${process.env.SMTP_FROM || 'orders@clickstagepro.com'}>`,
+      to: recipients,
+      subject: `New Order: ${order.photosPurchased} credits - ${styleName} style - ${order.name}`,
+      text: textContent,
+      html: htmlContent,
+    });
+
+    console.log('Order notification email sent:', info.messageId);
+    
+    const previewUrl = nodemailer.getTestMessageUrl(info);
+    if (previewUrl) {
+      console.log('Preview URL:', previewUrl);
+    }
+  } catch (error) {
+    console.error('Failed to send order notification email:', error);
+    throw error;
   }
 }
