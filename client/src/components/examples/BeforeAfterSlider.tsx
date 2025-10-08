@@ -1,6 +1,6 @@
 import { BeforeAfterSlider } from '../BeforeAfterSlider'
-import beforeImage from '@assets/generated_images/Empty_bedroom_before_staging_59928103.png'
-import afterImage from '@assets/generated_images/Staged_bedroom_after_transformation_5b7031f7.png'
+import beforeImage from '@/assets/styles/placeholder.png'
+import afterImage from '@/assets/styles/placeholder.png'
 
 export default function BeforeAfterSliderExample() {
   return (
