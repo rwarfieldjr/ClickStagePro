@@ -705,16 +705,14 @@ app.post("/api/ai/chat", async (req, res) => {
   }
 });
 
-// Price mapping using TESTING_PRICE_* or PRICE_* based on environment
-const isTesting = process.env.NODE_ENV !== "production";
-const prefix = isTesting ? "TESTING_" : "";
+// Price mapping using billingEnv for correct TEST/PRODUCTION switching via APP_ENV
 const PRICE_MAP: Record<number, string | undefined> = {
-  1: process.env[`${prefix}PRICE_SINGLE`],
-  5: process.env[`${prefix}PRICE_5`],
-  10: process.env[`${prefix}PRICE_10`],
-  20: process.env[`${prefix}PRICE_20`],
-  50: process.env[`${prefix}PRICE_50`],
-  100: process.env[`${prefix}PRICE_100`],
+  1: billingEnv.prices.SINGLE,
+  5: billingEnv.prices.P5,
+  10: billingEnv.prices.P10,
+  20: billingEnv.prices.P20,
+  50: billingEnv.prices.P50,
+  100: billingEnv.prices.P100,
 };
 
 app.post("/api/create-checkout-session", async (req, res) => {
