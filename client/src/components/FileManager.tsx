@@ -166,6 +166,31 @@ export default function FileManager({ hideAuthPrompt = false }: { hideAuthPrompt
             <input type="file" className="hidden" onChange={upload} />
             Upload
           </label>
+          {/* Download ZIP of all files in this folder */}
+          {files.length > 0 && (
+            <button
+              className="px-3 py-2 rounded-lg bg-gray-100"
+              onClick={async()=>{
+                try {
+                  const r = await fetch('/api/files/zip', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ keys: files.map(f=>f.key) })
+                  });
+                  if (!r.ok) throw new Error('Failed to create ZIP');
+                  const blob = await r.blob();
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url; a.download = 'photos.zip';
+                  document.body.appendChild(a); a.click(); a.remove();
+                  URL.revokeObjectURL(url);
+                } catch (e) { /* optionally toast */ }
+              }}
+            >
+              Download ZIP
+            </button>
+          )}
           <input
             placeholder="New folder name"
             value={newFolder}
