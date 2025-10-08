@@ -18,21 +18,24 @@ const isProd = (process.env.APP_ENV || "").toLowerCase() === "production";
 export const billingEnv = {
   isProd,
 
-  // Server-side keys (prefer unified names; fallback to legacy TESTING_* names)
+  // Server-side keys: Use TEST keys in dev/test mode, LIVE keys in production
   stripeSecretKey: need(
     "STRIPE_SECRET_KEY",
-    envFirst(["STRIPE_SECRET_KEY", "TESTING_STRIPE_SECRET_KEY"]) 
+    isProd 
+      ? envFirst(["STRIPE_SECRET_KEY"]) 
+      : envFirst(["TESTING_STRIPE_SECRET_KEY", "STRIPE_SECRET_KEY"])
   ),
 
-  webhookSecret: need(
-    "STRIPE_WEBHOOK_SECRET",
-    envFirst(["STRIPE_WEBHOOK_SECRET", "STRIPE_WEBHOOK_SECRET_LIVE"]) 
-  ),
+  webhookSecret: isProd
+    ? need("STRIPE_WEBHOOK_SECRET", envFirst(["STRIPE_WEBHOOK_SECRET_LIVE", "STRIPE_WEBHOOK_SECRET"]))
+    : process.env.STRIPE_WEBHOOK_SECRET || "", // Optional in test mode
 
-  // Client-side publishable key (support both STRIPE_PUBLISHABLE_KEY and VITE_* variants)
+  // Client-side publishable key: Use TEST key in dev/test mode, LIVE key in production
   stripePublishableKey: need(
     "STRIPE_PUBLISHABLE_KEY",
-    envFirst(["STRIPE_PUBLISHABLE_KEY", "VITE_STRIPE_PUBLIC_KEY", "TESTING_VITE_STRIPE_PUBLIC_KEY"]) 
+    isProd
+      ? envFirst(["VITE_STRIPE_PUBLIC_KEY", "STRIPE_PUBLISHABLE_KEY"])
+      : envFirst(["TESTING_VITE_STRIPE_PUBLIC_KEY", "VITE_STRIPE_PUBLIC_KEY", "STRIPE_PUBLISHABLE_KEY"])
   ),
 
   // Price IDs (live/test)
