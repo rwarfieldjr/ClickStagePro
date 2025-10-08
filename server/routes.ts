@@ -1822,7 +1822,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const outKey = key.replace(/\.[^.]+$/, '') + `.${target}`;
       const putCmd = new PutObjectCommand({ Bucket: R2_BUCKET, Key: outKey, Body: buffer, ContentType: `image/${target}` });
       await s3.send(putCmd);
-      const url = await getSignedUrl(s3, new GetObjectCommand({ Bucket: R2_BUCKET, Key: outKey }), { expiresIn: 900 });
+      const signed = await getSignedUrl(s3, new GetObjectCommand({ Bucket: R2_BUCKET, Key: outKey }), { expiresIn: 900 });
+      const base = process.env.PUBLIC_BASE_URL || (req.protocol + '://' + req.get('host'));
+      const url = signed.startsWith('http') ? signed : `${base}${signed}`;
       return res.json({ url });
     } catch (e: any) {
       console.error('file url error:', e.message);
