@@ -15,10 +15,9 @@ export const billingEnv = {
     isProd ? "STRIPE_SECRET_KEY" : "TESTING_STRIPE_SECRET_KEY",
     isProd ? process.env.STRIPE_SECRET_KEY : process.env.TESTING_STRIPE_SECRET_KEY
   ),
-  webhookSecret: need(
-    isProd ? "STRIPE_WEBHOOK_SECRET_LIVE" : "STRIPE_WEBHOOK_SECRET",
-    isProd ? process.env.STRIPE_WEBHOOK_SECRET_LIVE : process.env.STRIPE_WEBHOOK_SECRET
-  ),
+  webhookSecret: isProd 
+    ? (process.env.STRIPE_WEBHOOK_SECRET_LIVE || "") 
+    : (process.env.STRIPE_WEBHOOK_SECRET || ""),
 
   // Client-side publishable key
   stripePublishableKey: need(
