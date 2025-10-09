@@ -79,13 +79,10 @@ PRICE_20=price_...             # 20 credits / $160 / 12 months + auto-extend
 PRICE_50=price_...             # 50 credits / $375 / 24 months + auto-extend
 PRICE_100=price_...            # 100 credits / $700 / 24 months + auto-extend
 
-# ===== CLOUDFLARE R2 STORAGE =====
-ENABLE_R2=1
-CF_ACCOUNT_ID=your_account_id
-R2_ACCESS_KEY_ID=your_access_key
-R2_SECRET_ACCESS_KEY=your_secret
-R2_BUCKET=clickstagepro-assets
-R2_PUBLIC_URL=https://assets.clickstagepro.com  # Optional CDN URL
+# ===== SUPABASE STORAGE =====
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key  # For server-side storage operations
 
 # ===== EMAIL CONFIGURATION (Resend or SMTP) =====
 SMTP_HOST=smtp.resend.com      # Or your SMTP provider
@@ -95,10 +92,10 @@ SMTP_USER=resend               # Resend uses 'resend' as username
 SMTP_PASS=re_...               # Your Resend API key
 SMTP_FROM=noreply@clickstagepro.com
 
-# ===== REPLIT AUTH =====
-REPLIT_OIDC_CLIENT_ID=your_client_id
-REPLIT_OIDC_CLIENT_SECRET=your_secret
-ISSUER_URL=https://replit.com
+# ===== SUPABASE AUTH =====
+# Authentication is handled by Supabase (email/password with JWT)
+# Auth emails are sent by Supabase automatically
+# Transactional emails (order confirmations) use SMTP config above
 ```
 
 ### Optional Test Mode Variables (Keep for staging)
