@@ -48,7 +48,7 @@ export function R2Uploader({ submissionId, onUploadComplete }: R2UploaderProps) 
     setFiles(prev => prev.map(f => f.id === id ? { ...f, ...updates } : f));
   };
 
-  const uploadFileToR2 = async (file: File): Promise<void> => {
+  const uploadFileToSupabase = async (file: File): Promise<void> => {
     const fileId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
     // Add file to state
@@ -65,7 +65,7 @@ export function R2Uploader({ submissionId, onUploadComplete }: R2UploaderProps) 
     setFiles(prev => [...prev, uploadFile]);
 
     try {
-      // Step 1: Get presigned upload URL
+      // Step 1: Get upload info
       updateFileProgress(fileId, { progress: 10 });
       const uploadUrlResponse = await fetch('/api/r2/upload-url', {
         method: 'POST',
@@ -80,42 +80,57 @@ export function R2Uploader({ submissionId, onUploadComplete }: R2UploaderProps) 
 
       if (!uploadUrlResponse.ok) {
         const error = await uploadUrlResponse.json();
-        throw new Error(error.error || 'Failed to get upload URL');
+        throw new Error(error.error || 'Failed to get upload info');
       }
 
-      const { uploadUrl, key } = await uploadUrlResponse.json();
+      const { uploadUrl, key, contentType } = await uploadUrlResponse.json();
       updateFileProgress(fileId, { key, progress: 20 });
 
-      // Step 2: Upload file to R2 with progress tracking
-      const xhr = new XMLHttpRequest();
+      // Step 2: Convert file to base64 and upload to Supabase Storage
+      const reader = new FileReader();
       
       return new Promise((resolve, reject) => {
-        xhr.upload.addEventListener('progress', (e) => {
+        reader.onprogress = (e) => {
           if (e.lengthComputable) {
-            const progress = Math.round(20 + (e.loaded / e.total) * 70); // 20-90%
+            const progress = Math.round(20 + (e.loaded / e.total) * 30); // 20-50%
             updateFileProgress(fileId, { progress });
           }
-        });
+        };
 
-        xhr.addEventListener('load', () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
+        reader.onload = async () => {
+          try {
+            updateFileProgress(fileId, { progress: 50 });
+            
+            const base64 = (reader.result as string).split(',')[1];
+            const uploadResponse = await fetch(uploadUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                key, 
+                file: base64, 
+                mime: contentType 
+              })
+            });
+
+            if (!uploadResponse.ok) {
+              throw new Error('Upload failed');
+            }
+
             updateFileProgress(fileId, { 
               status: 'completed', 
               progress: 100 
             });
             resolve();
-          } else {
-            reject(new Error(`Upload failed: ${xhr.status} ${xhr.statusText}`));
+          } catch (error) {
+            reject(error);
           }
-        });
+        };
 
-        xhr.addEventListener('error', () => {
-          reject(new Error('Network error during upload'));
-        });
+        reader.onerror = () => {
+          reject(new Error('Failed to read file'));
+        };
 
-        xhr.open('PUT', uploadUrl);
-        xhr.setRequestHeader('Content-Type', file.type);
-        xhr.send(file);
+        reader.readAsDataURL(file);
       });
 
     } catch (error: any) {
@@ -165,7 +180,7 @@ export function R2Uploader({ submissionId, onUploadComplete }: R2UploaderProps) 
     // Upload files sequentially to avoid overwhelming the server
     for (const file of validFiles) {
       try {
-        await uploadFileToR2(file);
+        await uploadFileToSupabase(file);
         successCount++;
       } catch (error) {
         errorCount++;

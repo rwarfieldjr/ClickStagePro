@@ -7,12 +7,8 @@ import { initializeEmail } from "./email";
 import { cleanupExpiredSessions } from "./auth";
 import crypto from "crypto";
 import path from "path";
-import {
-  S3Client,
-  PutObjectCommand,
-  GetObjectCommand,
-} from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+// Supabase Storage imports (replacing R2)
+import * as supabaseStorage from "./lib/supabaseStorage";
 import Stripe from "stripe";
 import * as aiService from "./openai";
 import { billingEnv } from "../src/config/billingEnv";
@@ -120,13 +116,8 @@ app.post("/api/uploads/presign", async (req, res) => {
         .status(415)
         .json({ ok: false, error: "Unsupported file type" });
     }
-    if (
-      !process.env.CF_ACCOUNT_ID ||
-      !process.env.R2_ACCESS_KEY_ID ||
-      !process.env.R2_SECRET_ACCESS_KEY ||
-      !process.env.R2_BUCKET
-    ) {
-      return res.status(503).json({ ok: false, error: "R2 not configured" });
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
+      return res.status(503).json({ ok: false, error: "Supabase Storage not configured" });
     }
     // Key: anonymous/YYYY/MM/<uuid>-<sanitized-filename>
     const date = new Date();
@@ -137,14 +128,10 @@ app.post("/api/uploads/presign", async (req, res) => {
       .slice(0, 120);
     const key = `anonymous/${yyyy}/${mm}/${crypto.randomUUID()}-${safe}`;
 
-    const putCmd = new PutObjectCommand({
-      Bucket: R2_BUCKET,
-      Key: key,
-      ContentType: mime,
-    });
-    const url = await getSignedUrl(s3, putCmd, { expiresIn: 60 * 10 }); // 10 min
+    // For Supabase, return upload endpoint URL instead of presigned URL
+    const uploadUrl = `/api/storage/upload?key=${encodeURIComponent(key)}&mime=${encodeURIComponent(mime)}`;
     console.log(`[presign ${(req as any).rid}] key=${key} mime=${mime}`);
-    return res.json({ ok: true, url, key, mime });
+    return res.json({ ok: true, url: uploadUrl, key, mime });
   } catch (e: any) {
     console.error("presign error:", e);
     return res
@@ -174,28 +161,20 @@ app.get("/thank-you.html", (req, res) => {
   res.sendFile(path.join(process.cwd(), "public", "thank-you.html"));
 });
 
-const s3 = new S3Client({
-  region: "auto",
-  endpoint: `https://${process.env.CF_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-  credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID as string,
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY as string,
-  },
-});
-const R2_BUCKET = process.env.R2_BUCKET as string;
+// Supabase Storage is now initialized in supabaseStorage.ts
+// No need for S3 client anymore
 
 // Initialize Stripe with centralized billing config
 const stripe = new Stripe(billingEnv.stripeSecretKey);
 const isLiveMode = billingEnv.stripeSecretKey.startsWith("sk_live_");
 
-[
-  "CF_ACCOUNT_ID",
-  "R2_ACCESS_KEY_ID",
-  "R2_SECRET_ACCESS_KEY",
-  "R2_BUCKET",
-].forEach((k) => {
-  if (!process.env[k]) console.warn(`⚠️ Missing env: ${k}`);
-});
+// Supabase Storage environment check
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
+  console.warn(`⚠️ Missing Supabase env variables for storage`);
+}
+if (!process.env.SUPABASE_STORAGE_BUCKET) {
+  console.log(`ℹ️  Using default storage bucket: ${supabaseStorage.STORAGE_BUCKET}`);
+}
 
 const mode = billingEnv.isProd ? "PRODUCTION" : "TEST";
 const keyType = isLiveMode ? "LIVE" : "TEST";
@@ -404,13 +383,8 @@ async function uploadProxyHandler(req: Request, res: Response) {
         .json({ ok: false, error: "Unsupported file type" });
     }
 
-    if (
-      !process.env.CF_ACCOUNT_ID ||
-      !process.env.R2_ACCESS_KEY_ID ||
-      !process.env.R2_SECRET_ACCESS_KEY ||
-      !process.env.R2_BUCKET
-    ) {
-      return res.status(503).json({ ok: false, error: "R2 not configured" });
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
+      return res.status(503).json({ ok: false, error: "Supabase Storage not configured" });
     }
 
     // Generate key
@@ -425,15 +399,8 @@ async function uploadProxyHandler(req: Request, res: Response) {
     // Convert base64 to buffer
     const buffer = Buffer.from(fileData, "base64");
 
-    // Upload directly to R2
-    const putCmd = new PutObjectCommand({
-      Bucket: R2_BUCKET,
-      Key: key,
-      Body: buffer,
-      ContentType: mime,
-    });
-
-    await s3.send(putCmd);
+    // Upload directly to Supabase Storage
+    await supabaseStorage.uploadFile(key, buffer, mime);
 
     return res.json({ ok: true, key });
   } catch (e: any) {
@@ -489,27 +456,22 @@ app.post("/api/r2/upload-url", async (req, res) => {
     const safeFilename = String(filename).replace(/[^\w.\-]+/g, "_");
     const key = `${userId}/${datePath}/${uuid}-${safeFilename}`;
 
-    const cmd = new PutObjectCommand({
-      Bucket: R2_BUCKET,
-      Key: key,
-      ContentType: mime,
-      Metadata: {
-        "orig-filename": filename,
-        "uploaded-by": userId,
-        "project-id": projectId || "",
-        "upload-date": new Date().toISOString(),
-      },
-    });
+    // For Supabase Storage, return upload endpoint URL with metadata
+    const uploadUrl = `/api/storage/upload`;
+    const metadata = {
+      "orig-filename": filename,
+      "uploaded-by": userId,
+      "project-id": projectId || "",
+      "upload-date": new Date().toISOString(),
+    };
 
-    const uploadUrl = await getSignedUrl(s3, cmd, { expiresIn: 900 }); // 15 min
-
-    // Log success (without exposing the URL)
+    // Log success
     const duration = Date.now() - startTime;
     console.log(
-      `R2 upload URL generated for user ${userId}, file: ${filename}, key: ${key} (${duration}ms)`,
+      `Supabase upload URL generated for user ${userId}, file: ${filename}, key: ${key} (${duration}ms)`,
     );
 
-    res.json({ uploadUrl, key, expiresIn: 900 });
+    res.json({ uploadUrl, key, expiresIn: 900, metadata, contentType: mime });
   } catch (e: any) {
     const duration = Date.now() - startTime;
     console.error(`R2 upload URL error (${duration}ms):`, e.message);
@@ -517,30 +479,51 @@ app.post("/api/r2/upload-url", async (req, res) => {
   }
 });
 
-// Enhanced download URL with validation
+// Supabase Storage direct upload endpoint
+app.post("/api/storage/upload", async (req, res) => {
+  try {
+    const { key, file, mime } = req.body || {};
+    
+    if (!key || !file) {
+      return res.status(400).json({ error: "key and file are required" });
+    }
+
+    // Convert base64 to buffer if needed
+    let fileBuffer: Buffer;
+    if (typeof file === 'string') {
+      // Assume base64
+      fileBuffer = Buffer.from(file, 'base64');
+    } else {
+      fileBuffer = Buffer.from(file);
+    }
+
+    // Upload to Supabase Storage
+    await supabaseStorage.uploadFile(key, fileBuffer, mime || 'application/octet-stream');
+
+    res.json({ success: true, key });
+  } catch (e: any) {
+    console.error("Supabase upload error:", e.message);
+    res.status(500).json({ error: "Failed to upload file" });
+  }
+});
+
+// Enhanced download URL with validation (now using Supabase Storage)
 app.post("/api/r2/download-url", async (req, res) => {
   const startTime = Date.now();
   try {
     const { key, asFilename } = req.body || {};
     if (!key) return res.status(400).json({ error: "key required" });
 
-    const cmd = new GetObjectCommand({
-      Bucket: R2_BUCKET,
-      Key: key,
-      ResponseContentDisposition: asFilename
-        ? `attachment; filename="${asFilename}"`
-        : undefined,
-    });
-
-    const downloadUrl = await getSignedUrl(s3, cmd, { expiresIn: 900 }); // 15 min
+    // Generate signed URL from Supabase Storage (1 hour expiry)
+    const downloadUrl = await supabaseStorage.signGet(key, 3600);
 
     const duration = Date.now() - startTime;
-    console.log(`R2 download URL generated for key: ${key} (${duration}ms)`);
+    console.log(`Supabase download URL generated for key: ${key} (${duration}ms)`);
 
-    res.json({ url: downloadUrl, expiresIn: 900 });
+    res.json({ url: downloadUrl, expiresIn: 3600 });
   } catch (e: any) {
     const duration = Date.now() - startTime;
-    console.error(`R2 download URL error (${duration}ms):`, e.message);
+    console.error(`Supabase download URL error (${duration}ms):`, e.message);
     res.status(500).json({ error: "Failed to generate download URL" });
   }
 });
