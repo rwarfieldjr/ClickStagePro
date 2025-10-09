@@ -958,10 +958,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   };
 
-  // Register webhook handler on multiple paths for compatibility
+  // Webhook verification handler for GET requests (Stripe endpoint verification)
+  const webhookVerificationHandler = (_req: any, res: any) => {
+    res.status(200).json({ 
+      status: 'ok',
+      message: 'Webhook endpoint is active',
+      enabled: ENABLE_STRIPE_WEBHOOK,
+      hasWebhookSecret: !!billingEnv.webhookSecret,
+      mode: billingEnv.isProd ? 'production' : 'test'
+    });
+  };
+
+  // Register webhook handlers on multiple paths for compatibility
+  // POST handlers for actual webhook events
   app.post("/api/stripe-webhook", stripeWebhookHandler);
   app.post("/api/webhooks/stripe", stripeWebhookHandler);
   app.post("/api/billing/webhook", stripeWebhookHandler);
+  
+  // GET handlers for Stripe endpoint verification
+  app.get("/api/stripe-webhook", webhookVerificationHandler);
+  app.get("/api/webhooks/stripe", webhookVerificationHandler);
+  app.get("/api/billing/webhook", webhookVerificationHandler);
 
   // ======= PAYMENT METHOD MANAGEMENT APIS =======
   

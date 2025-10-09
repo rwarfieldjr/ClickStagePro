@@ -180,6 +180,11 @@ const mode = billingEnv.isProd ? "PRODUCTION" : "TEST";
 const keyType = isLiveMode ? "LIVE" : "TEST";
 console.log(`✅ Stripe configured in ${mode} mode using ${keyType} key`);
 
+// Webhook configuration logging
+const webhookEnabled = process.env.ENABLE_STRIPE_WEBHOOK === "1";
+const hasWebhookSecret = !!billingEnv.webhookSecret;
+console.log(`📡 Webhook status: ${webhookEnabled ? 'ENABLED' : 'DISABLED'} | Secret configured: ${hasWebhookSecret ? 'YES' : 'NO'}${!hasWebhookSecret && billingEnv.isProd ? ' ⚠️  WARNING: Production mode without webhook secret!' : ''}`);
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -942,6 +947,24 @@ if (ENABLE_DEV_AUTH) {
   } else {
     serveStatic(app);
   }
+
+  // Register webhook GET handlers AFTER static serving to override catch-all route
+  // This allows Stripe to verify webhook endpoints via GET requests
+  const webhookVerificationHandler = (_req: any, res: any) => {
+    const webhookEnabled = process.env.ENABLE_STRIPE_WEBHOOK === "1";
+    const hasWebhookSecret = !!billingEnv.webhookSecret;
+    res.status(200).json({ 
+      status: 'ok',
+      message: 'Webhook endpoint is active',
+      enabled: webhookEnabled,
+      hasWebhookSecret: hasWebhookSecret,
+      mode: billingEnv.isProd ? 'production' : 'test'
+    });
+  };
+
+  app.get("/api/stripe-webhook", webhookVerificationHandler);
+  app.get("/api/webhooks/stripe", webhookVerificationHandler);
+  app.get("/api/billing/webhook", webhookVerificationHandler);
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
   // Other ports are firewalled. Default to 5000 if not specified.
