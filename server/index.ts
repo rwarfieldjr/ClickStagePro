@@ -816,6 +816,17 @@ if (ENABLE_DEV_AUTH) {
     serveStatic(app);
   }
 
+  // Explicitly register webhook router AFTER static middleware to satisfy
+  // hosting/router expectations on Replit .app edge. Non-POST will 405.
+  // Note: the actual POST webhook handlers are already mounted earlier with
+  // express.raw() for signature verification. This router only guards verbs.
+  try {
+    const stripeRouter = (await import('./api/webhooks/stripe.ts')).default;
+    app.use('/api/webhooks', stripeRouter);
+  } catch (e) {
+    console.error('Failed to mount /api/webhooks router:', (e as any)?.message);
+  }
+
   // ALWAYS serve the app on the port specified in the environment variable PORT
   // Other ports are firewalled. Default to 5000 if not specified.
   // this serves both the API and the client.
